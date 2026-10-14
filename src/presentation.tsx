@@ -1,11 +1,11 @@
 import {useState,useEffect,useRef} from 'react';
 import {Link,useSearchParams} from 'react-router-dom';
-import {Monitor,ChevronLeft,ChevronRight,Plus,Trash2,Save,Upload,Download,ExternalLink,Maximize,Eye,EyeOff,Music2,BookOpen,XCircle,Square} from 'lucide-react';
+import {Monitor,ChevronLeft,ChevronRight,Plus,Trash2,Save,Upload,Download,ExternalLink,Maximize,Eye,EyeOff,Music2,BookOpen,XCircle,FileVideo,FileImage,FileText} from 'lucide-react';
 import {BibleReader,useLocal} from './bible';
 import {initialSongs} from './content';
 import {pastorSongs} from './songs';
 
-type Slide = { id: string; title: string; text: string };
+type Slide = { id: string; title: string; text: string; mediaUrl?: string; mediaType?: string };
 type Show = { slides: Slide[]; index: number; background: string; size: number; align: 'left' | 'center' | 'right'; effect: string; blank: boolean; logo: boolean; title: string };
 
 const initial: Show = {
@@ -33,12 +33,15 @@ export function validShow(x: any): x is Show {
 }
 
 function Stage({ show, onToggleBlank }: { show: Show, onToggleBlank?: () => void }) {
+  const currentSlide = show.slides[show.index];
   return <div className={'pro-stage stage-' + show.background + (show.blank ? ' blanked' : '')} style={{ textAlign: show.align }}>
     {!show.blank && <>
-      <div key={show.index + (show.slides[show.index]?.id || '') + (show.slides[show.index]?.text || '')} className={'stage-words effect-' + show.effect} style={{ fontSize: `${show.size / 12}cqw`, textAlign: show.align }}>
-        {show.slides[show.index]?.text}
+      {currentSlide?.mediaUrl && currentSlide.mediaType?.startsWith('image') && <img src={currentSlide.mediaUrl} alt={currentSlide.title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain'}}/>}
+      {currentSlide?.mediaUrl && currentSlide.mediaType?.startsWith('video') && <video src={currentSlide.mediaUrl} autoPlay loop muted style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>}
+      <div key={show.index + (currentSlide?.id || '') + (currentSlide?.text || '')} className={'stage-words effect-' + show.effect} style={{ fontSize: `${show.size / 12}cqw`, textAlign: show.align, zIndex: 2, position: 'relative' }}>
+        {currentSlide?.text}
       </div>
-      {show.logo && <img className="stage-logo" src="/images/anointing-logo.jpg" alt="Anointing Ministries"/>}
+      {show.logo && <img className="stage-logo" src="/images/anointing-logo.jpg" alt="Anointing Ministries" style={{zIndex:3}}/>}
     </>}
     {show.blank && <div 
       className="blank-indicator" 
@@ -49,7 +52,7 @@ function Stage({ show, onToggleBlank }: { show: Show, onToggleBlank?: () => void
         letterSpacing: '1.5px', 
         textAlign: 'center', 
         cursor: onToggleBlank ? 'pointer' : 'default',
-        padding: '1.5px'
+        padding: '1.5rem'
       }}>
         Blackout active (Click or press B)
       </div>}
@@ -192,8 +195,8 @@ export function ProStudio() {
     setDeck(d => ({ ...d, ...p }));
   }
 
-  function add(value: string, name: string) {
-    const fresh = { id: crypto.randomUUID(), title: name, text: value };
+  function add(value: string, name: string, mediaUrl?: string, mediaType?: string) {
+    const fresh = { id: crypto.randomUUID(), title: name, text: value, mediaUrl, mediaType };
     setDeck(d => ({ ...d, slides: [...d.slides, fresh], index: d.slides.length }));
     setMessage('Added ' + name + ' to the service');
   }
@@ -387,7 +390,8 @@ export function ProStudio() {
           </select>
         </label>
         <p className="small muted">Enable Follow navigation to auto-advance audience output too.</p>
-        <h3>Saved presentations</h3>
+        <h3>Saved presentations & Media</h3>
+        <p className="small muted">Supports .json, .ppt, .pptx, images (.png, .jpg), .pdf, and videos (.mp4, .webm).</p>
         <select aria-label="Load saved presentation" value="" onChange={e => {
           const s = saved[Number(e.target.value)];
           if (validShow(s)) { setDeck(s); setMessage('Loaded saved presentation'); }
@@ -403,24 +407,33 @@ export function ProStudio() {
             a.download = 'Anointing-Presentation.json';
             a.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }}><Download size={15}/>Export</button>
+          }}><Download size={15}/>Export JSON</button>
           <label className="upload">
-            <Upload size={15}/>Import
-            <input type="file" accept=".json" aria-label="Import presentation JSON" onChange={async e => {
+            <Upload size={15}/>Import media / PPT / PDF
+            <input type="file" accept=".json,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.pdf,.mp4,.webm" aria-label="Import presentation or media file" onChange={async e => {
               try {
                 const f = e.target.files?.[0];
-                if (!f || f.size > 2000000) throw Error();
-                const d = JSON.parse(await f.text());
-                if (!validShow(d)) throw Error();
-                setDeck(d);
-                setMessage('Presentation imported');
+                if (!f || f.size > 50000000) throw Error();
+                const ext = f.name.split('.').pop()?.toLowerCase();
+                if (ext === 'json') {
+                  const d = JSON.parse(await f.text());
+                  if (!validShow(d)) throw Error();
+                  setDeck(d);
+                  setMessage('Presentation imported successfully');
+                } else {
+                  const url = URL.createObjectURL(f);
+                  const isVid = ext === 'mp4' || ext === 'webm';
+                  const isImg = ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'gif';
+                  add(`[Media attachment: ${f.name}]\nFormat: ${ext?.toUpperCase()}`, f.name, url, f.type || (isVid ? 'video/mp4' : isImg ? 'image/png' : 'application/octet-stream'));
+                  setMessage(`Imported ${f.name} into service slides`);
+                }
               } catch {
-                setMessage('Choose a valid exported presentation under 2 MB');
+                setMessage('Choose a valid presentation or media file under 50 MB');
               }
             }}/>
           </label>
         </div>
-        <p className="small muted">FreeShow-inspired browser workflow. Presentations stay on this device; export a backup. No affiliation with FreeShow.</p>
+        <p className="small muted">FreeShow-inspired workflow. Presentations and media stay on this device.</p>
       </aside>
     </div>
   </div>;
