@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Church announcement posts with expiration and media",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "ministry": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "image": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "expiresAt": { "type": "number" },
+        "likesCount": { "type": "integer" },
+        "notified": { "type": "boolean" }
+      },
+      "required": ["id", "title", "content"]
+    },
+    "Song": {
+      "title": "Song",
+      "description": "Worship songs and hymn library",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "artist": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "language": { "type": "string", "maxLength": 50 },
+        "lyrics": { "type": "string", "maxLength": 10000 },
+        "duration": { "type": "string", "maxLength": 50 },
+        "src": { "type": "string", "maxLength": 500 },
+        "image": { "type": "string", "maxLength": 200 }
+      },
+      "required": ["id", "title", "artist", "lyrics"]
+    },
+    "HomeSetting": {
+      "title": "HomeSetting",
+      "description": "Home page custom images and banners added by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "caption": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "imageUrl"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "Important alert notification for all users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "message"]
+    }
+  },
+  "firestore": {
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Collection of church announcement posts"
+    },
+    "/songs/{songId}": {
+      "schema": "Song",
+      "description": "Collection of worship songs"
+    },
+    "/home_settings/{settingId}": {
+      "schema": "HomeSetting",
+      "description": "Collection of home page custom images and banners"
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Collection of system-wide important alerts"
+    }
+  }
+}

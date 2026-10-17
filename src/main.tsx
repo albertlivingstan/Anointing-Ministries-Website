@@ -5,11 +5,13 @@ import {ProStudio,ProAudience} from './presentation';
 import React, { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle } from 'lucide-react';
 import './style.css';
 import { initialSongs, verses, sermons, type Song } from './content';
 import { config } from './config';
 import {Brand,SocialLinks,MinistryArchive,CommunityConnect,MotionEnhancements,LightAtmosphere} from './ministry';
+import { db } from './lib/firebase';
+import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 function useTitle(t: string) {
   useEffect(() => {
@@ -35,7 +37,10 @@ function useStored<T>(key: string, initial: T) {
 
 const Ctx = createContext<any>(null);
 const useApp = () => useContext(Ctx);
-const Img = ({ name = 'church', ...props }: any) => <img src={'/images/' + name + '.jpg'} {...props}/>;
+const Img = ({ name = 'church', ...props }: any) => {
+  const src = name.startsWith('http') || name.startsWith('/') ? name : '/images/' + name + '.jpg';
+  return <img src={src} {...props}/>;
+};
 function IconButton({ label, children, ...props }: any) { return <button className="icon-btn" aria-label={label} title={label} {...props}>{children}</button>; }
 function Tag({ children }: any) { return <span className="eyebrow">{children}</span>; }
 function Reveal({ children, className = '' }: any) { return <motion.div className={className} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .65 }}>{children}</motion.div>; }
@@ -47,7 +52,33 @@ export function App() {
   const [recent, setRecent] = useStored<string[]>('grace-recent', []);
   const [toast, setToast] = useState('');
   const [modal, setModal] = useState<any>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const notify = (m: string) => setToast(m);
+
+  // Sync songs and alerts from Firestore
+  useEffect(() => {
+    if (!db) return;
+    const unsubSongs = onSnapshot(collection(db, 'songs'), (snapshot: any) => {
+      if (!snapshot.empty) {
+        const remoteSongs = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as Song[];
+        setSongs(prev => {
+          const map = new Map(prev.map(s => [s.id, s]));
+          remoteSongs.forEach(rs => map.set(rs.id, rs));
+          return Array.from(map.values());
+        });
+      }
+    }, () => {});
+
+    const unsubAlerts = onSnapshot(collection(db, 'alerts'), (snapshot: any) => {
+      const activeAlerts = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })).filter((a: any) => a.active);
+      setAlerts(activeAlerts);
+    }, () => {});
+
+    return () => {
+      unsubSongs();
+      unsubAlerts();
+    };
+  }, []);
 
   useEffect(() => {
     if (!modal) return;
@@ -87,7 +118,7 @@ export function App() {
 
   const toggle = (id: string) => setFavs((f) => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
 
-  return <Ctx.Provider value={{ songs, setSongs, current, setCurrent, favs, toggle, recent, play, notify, setModal }}>
+  return <Ctx.Provider value={{ songs, setSongs, current, setCurrent, favs, toggle, recent, play, notify, setModal, alerts }}>
     <MotionConfig reducedMotion="user">
       <Routes>
         <Route path="/worship/presentation" element={<ProStudio />}/>
@@ -116,23 +147,33 @@ function Shell() {
   const [menu, setMenu] = useState(false), [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const home = location.pathname === '/';
+  const { alerts } = useApp();
+
   useEffect(() => {
     setMenu(false);
     if (location.hash) {
       requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView());
     } else window.scrollTo(0, 0);
   }, [location.pathname, location.hash]);
+
   useEffect(() => {
     const f = () => setScrolled(window.scrollY > 30);
     window.addEventListener('scroll', f);
     return () => window.removeEventListener('scroll', f);
   }, []);
+
   return <>
     <a className="skip" href="#main">Skip to content</a>
-    <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')}>
+    {alerts.length > 0 && (
+      <div className="bg-amber-600 text-white px-4 py-2 text-xs flex items-center justify-center gap-2 fixed top-0 left-0 right-0 z-50 shadow-md">
+        <AlertCircle size={16}/>
+        <span><b>Important Alert:</b> {alerts[0].message}</span>
+      </div>
+    )}
+    <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={alerts.length > 0 ? {marginTop:'33px'} : {}}>
       <Brand/>
       <nav className={menu ? 'open' : ''} aria-label="Main navigation">
-        {['Home', 'About', 'Worship', 'Sermons', 'Bible', 'Prayer', 'Contact'].map(x => {
+        {['Home', 'About', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'Contact'].map(x => {
           const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
           return <Link key={x} className={location.pathname === path ? 'active' : ''} to={path}>{x}</Link>;
         })}
@@ -147,6 +188,8 @@ function Shell() {
         <Route path="/worship" element={<Worship />}/>
         <Route path="/sermons" element={<Sermons />}/>
         <Route path="/sermons/:id" element={<SermonDetail />}/>
+        <Route path="/announcements" element={<Announcements />}/>
+        <Route path="/admin" element={<Admin />}/>
         <Route path="/bible" element={<BibleReader/>}/>
         <Route path="/live" element={<LivePage/>}/>
         <Route path="/about" element={<About />}/>
@@ -164,8 +207,515 @@ function PageNotFound() {
   return <PageTitle tag="PAGE NOT FOUND" title="A new direction" text="This page could not be found."><Link to="/" className="btn navy">Return home</Link></PageTitle>;
 }
 
+const defaultAnnouncements = [
+  { id: '1', ministry: 'Anointing Ministries', avatar: 'anointing-logo', image: 'church-worship', title: 'Sunday Worship Service', content: 'Join us this Sunday at Madukkarai Church Sanctuary for powerful worship, Word, and fellowship with Pastor David Samson and Rev. Dr. Samson Edward. Come expectant!', timestamp: '2 hours ago', expiresAt: Date.now() + 7 * 86400000, likesCount: 142, liked: false, notified: false, comments: [{ id: 'c1', name: 'Grace Mary', text: 'Praise God! Looking forward to fellowship.' }, { id: 'c2', name: 'Samuel Raj', text: 'Amen! See you all there.' }] },
+  { id: '2', ministry: 'Youth & Young Adults', avatar: 'anointing-logo', image: 'christmas-community', title: 'Youth Night & Praise', content: 'An evening of acoustic worship, testimonies, and deep fellowship in the Word. Bring a friend!', timestamp: 'Yesterday', expiresAt: Date.now() + 7 * 86400000, likesCount: 98, liked: true, notified: true, comments: [{ id: 'c3', name: 'Blessy', text: 'Cant wait for this!' }] },
+  { id: '3', ministry: 'Community Outreach', avatar: 'anointing-logo', image: 'community', title: 'Charity Drive & Prayer Walk', content: 'Reaching out to our local neighborhood with love, prayer, and support. Volunteers welcome.', timestamp: '3 days ago', expiresAt: Date.now() + 7 * 86400000, likesCount: 215, liked: false, notified: false, comments: [] }
+];
+
+function Announcements() {
+  useTitle('Announcements — Anointing Ministries');
+  const [posts, setPosts] = useStored<any[]>('am-ig-announcements', defaultAnnouncements);
+  const [commentInputs, setCommentInputs] = useState<{ [key: string]: string }>({});
+  const [bigHearts, setBigHearts] = useState<{ [key: string]: boolean }>({});
+  const [expandedCaptions, setExpandedCaptions] = useState<{ [key: string]: boolean }>({});
+  const { notify } = useApp();
+
+  // Fetch from Firestore and filter out expired posts (> 1 week or custom expiry)
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(collection(db, 'announcements'), (snapshot: any) => {
+      const now = Date.now();
+      const remote = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      const valid = remote.filter((p: any) => !p.expiresAt || p.expiresAt > now);
+      if (valid.length > 0) {
+        setPosts(valid);
+      }
+    }, () => {});
+    return () => unsub();
+  }, []);
+
+  const handleDoubleTap = (id: string) => {
+    setBigHearts(prev => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setBigHearts(prev => ({ ...prev, [id]: false }));
+    }, 800);
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: true, likesCount: p.liked ? p.likesCount : p.likesCount + 1 } : p));
+  };
+
+  const toggleLike = (id: string) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked, likesCount: p.liked ? p.likesCount - 1 : p.likesCount + 1 } : p));
+  };
+
+  const toggleNotify = (id: string) => {
+    setPosts(prev => prev.map(p => {
+      const nextNotified = !p.notified;
+      if (nextNotified) notify('Notifications enabled for this update');
+      return p.id === id ? { ...p, notified: nextNotified } : p;
+    }));
+  };
+
+  const addComment = (id: string, e: React.FormEvent) => {
+    e.preventDefault();
+    const text = commentInputs[id]?.trim();
+    if (!text) return;
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, comments: [...p.comments, { id: crypto.randomUUID(), name: 'You', text }] } : p));
+    setCommentInputs(prev => ({ ...prev, [id]: '' }));
+    notify('Comment posted successfully');
+  };
+
+  const activePosts = posts.filter(p => !p.expiresAt || p.expiresAt > Date.now());
+
+  return (
+    <div className="min-h-screen bg-slate-50 py-10 px-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.5 }}
+        className="max-w-[600px] mx-auto space-y-6"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between bg-white px-5 py-4 rounded-xl border border-slate-200 shadow-sm">
+          <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Church Announcements</h1>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <button aria-label="Notifications" className="p-2 rounded-full hover:bg-slate-100 transition">
+                <Bell size={20} className="text-slate-700"/>
+              </button>
+              <span className="absolute top-1 right-1 w-2 h-2 bg-amber-600 rounded-full"></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Feed */}
+        <div className="space-y-6">
+          {activePosts.map((post, idx) => (
+            <motion.article 
+              key={post.id}
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+            >
+              {/* Post Header */}
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-500/30 p-0.5 bg-amber-50">
+                    <img src="/images/anointing-logo.jpg" alt="Ministry Logo" className="w-full h-full object-cover rounded-full"/>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-900 leading-tight">{post.ministry}</h2>
+                    <p className="text-xs text-slate-500">{post.timestamp}</p>
+                  </div>
+                </div>
+                <button aria-label="More options" className="text-slate-500 hover:text-slate-800 p-1">
+                  <MoreHorizontal size={18}/>
+                </button>
+              </div>
+
+              {/* Media Area */}
+              <div 
+                className="relative aspect-square sm:aspect-[4/5] bg-slate-900 overflow-hidden select-none cursor-pointer"
+                onDoubleClick={() => handleDoubleTap(post.id)}
+              >
+                <Img name={post.image} alt={post.title} className="w-full h-full object-cover"/>
+                
+                {/* Big Like Animation */}
+                <AnimatePresence>
+                  {bigHearts[post.id] && (
+                    <motion.div 
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1.2, opacity: 1 }}
+                      exit={{ scale: 1.5, opacity: 0 }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    >
+                      <Heart size={90} className="text-white fill-white drop-shadow-lg" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Interaction Bar */}
+              <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <motion.button 
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => toggleLike(post.id)}
+                    aria-label="Like post"
+                    className="focus:outline-none"
+                  >
+                    <Heart size={24} className={post.liked ? "text-rose-600 fill-rose-600" : "text-slate-800 hover:text-slate-600"}/>
+                  </motion.button>
+                  <motion.button 
+                    whileTap={{ scale: 0.85 }}
+                    aria-label="Comment"
+                    className="focus:outline-none text-slate-800 hover:text-slate-600"
+                  >
+                    <MessageCircle size={24}/>
+                  </motion.button>
+                  <motion.button 
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => toggleNotify(post.id)}
+                    aria-label="Toggle notifications for post"
+                    className="focus:outline-none"
+                  >
+                    <Bell size={24} className={post.notified ? "text-amber-600 fill-amber-600" : "text-slate-800 hover:text-slate-600"}/>
+                  </motion.button>
+                </div>
+                <motion.button whileTap={{ scale: 0.85 }} aria-label="Bookmark" className="text-slate-800 hover:text-slate-600">
+                  <Bookmark size={24}/>
+                </motion.button>
+              </div>
+
+              {/* Content Section */}
+              <div className="px-4 pb-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-900">{post.likesCount} likes</p>
+                
+                <div>
+                  <h3 className="inline font-semibold text-slate-900 mr-2">{post.ministry}</h3>
+                  <span className="text-slate-800 text-sm">
+                    {expandedCaptions[post.id] || post.content.length <= 100 
+                      ? post.content 
+                      : post.content.slice(0, 100) + '...'}
+                  </span>
+                  {post.content.length > 100 && (
+                    <button 
+                      onClick={() => setExpandedCaptions(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                      className="text-xs text-slate-500 font-medium ml-1 hover:underline"
+                    >
+                      {expandedCaptions[post.id] ? 'less' : 'more'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Comments List */}
+                {post.comments?.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    <p className="text-xs text-slate-500 font-medium">Comments ({post.comments.length})</p>
+                    {post.comments.map((c: any) => (
+                      <div key={c.id} className="text-xs text-slate-800">
+                        <span className="font-semibold mr-1.5">{c.name}</span>
+                        <span>{c.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Comment Input Bar */}
+                <form onSubmit={(e) => addComment(post.id, e)} className="pt-2 flex items-center gap-2 border-t border-slate-100 mt-3">
+                  <input 
+                    type="text"
+                    value={commentInputs[post.id] || ''}
+                    onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    placeholder="Add a comment..."
+                    aria-label="Add a comment"
+                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none py-1"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!commentInputs[post.id]?.trim()}
+                    className="text-xs font-semibold text-amber-700 disabled:opacity-40 hover:text-amber-800 transition"
+                  >
+                    Post
+                  </button>
+                </form>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function Admin() {
+  useTitle('Admin Portal — Anointing Ministries');
+  const [authed, setAuthed] = useStored<boolean>('am-admin-auth', false);
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [err, setErr] = useState('');
+  const [list, setList] = useStored<any[]>('am-ig-announcements', defaultAnnouncements);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [ministry, setMinistry] = useState('Anointing Ministries');
+  const [image, setImage] = useState('church-worship');
+  const [customImage, setCustomImage] = useState('');
+  const [expiryDays, setExpiryDays] = useState('7'); // Default 1 week auto-delete
+
+  // Song admin state
+  const [songTitle, setSongTitle] = useState('');
+  const [songArtist, setSongArtist] = useState('');
+  const [songLyrics, setSongLyrics] = useState('');
+  const [songCategory, setSongCategory] = useState('Worship');
+
+  // Home image admin state
+  const [homeImgUrl, setHomeImgUrl] = useState('');
+  const [homeImgTitle, setHomeImgTitle] = useState('');
+  const [homeSettingsList, setHomeSettingsList] = useState<any[]>([]);
+
+  // Alert notification state
+  const [alertMsg, setAlertMsg] = useState('');
+  const [alertActive, setAlertActive] = useState(false);
+
+  const { notify } = useApp();
+
+  useEffect(() => {
+    if (!db) return;
+    // Fetch announcements, home settings
+    const unsubAnns = onSnapshot(collection(db, 'announcements'), (snap: any) => {
+      if (!snap.empty) setList(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
+    }, () => {});
+
+    const unsubHome = onSnapshot(collection(db, 'home_settings'), (snap: any) => {
+      setHomeSettingsList(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
+    }, () => {});
+
+    const unsubAlert = onSnapshot(collection(db, 'alerts'), (snap: any) => {
+      if (!snap.empty) {
+        const a = snap.docs[0].data();
+        setAlertMsg(a.message || '');
+        setAlertActive(a.active || false);
+      }
+    }, () => {});
+
+    return () => {
+      unsubAnns();
+      unsubHome();
+      unsubAlert();
+    };
+  }, []);
+
+  const login = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user.trim() === 'jesus' && pass === 'Jesusisable') {
+      setAuthed(true);
+      setErr('');
+      notify('Welcome, Admin');
+    } else {
+      setErr('Invalid username or password.');
+    }
+  };
+
+  if (!authed) {
+    return <section className="section page-title" style={{maxWidth:'500px',margin:'80px auto'}}>
+      <Tag>RESTRICTED ACCESS</Tag>
+      <h1>Admin <em>Login.</em></h1>
+      <p>Please enter administrator credentials to manage announcements and church broadcast settings.</p>
+      <form className="form form-card" onSubmit={login} style={{marginTop:'30px'}}>
+        <label>Username<input required value={user} onChange={e => setUser(e.target.value)} aria-label="Admin username" placeholder="Enter username"/></label>
+        <label>Password<input required type="password" value={pass} onChange={e => setPass(e.target.value)} aria-label="Admin password" placeholder="Enter password"/></label>
+        {err && <p className="form-status" role="alert">{err}</p>}
+        <button className="btn navy">Login to Admin Portal <ArrowRight size={17}/></button>
+      </form>
+    </section>;
+  }
+
+  return <>
+    <PageTitle tag="ADMIN DASHBOARD" title={<>Ministry <em>Control Center.</em></>} text="Post announcements with custom media & expiry, add songs, home banners, and broadcast alerts.">
+      <button className="btn outline" onClick={() => { setAuthed(false); notify('Logged out'); }}>Logout</button>
+    </PageTitle>
+    <section className="section pt0 detail-layout">
+      <div className="space-y-8">
+        {/* Create Announcement */}
+        <form className="form form-card" onSubmit={async e => {
+          e.preventDefault();
+          if (!title.trim() || !content.trim()) return;
+          const days = Number(expiryDays) || 7;
+          const expiresAt = Date.now() + days * 86400000;
+          const imgToUse = customImage.trim() || image;
+          const fresh = {
+            id: crypto.randomUUID(),
+            ministry: ministry || 'Anointing Ministries',
+            avatar: 'anointing-logo',
+            image: imgToUse,
+            title,
+            content,
+            timestamp: 'Just now',
+            expiresAt,
+            likesCount: 1,
+            liked: false,
+            notified: true,
+            comments: []
+          };
+          try {
+            await setDoc(doc(db, 'announcements', fresh.id), fresh);
+            setList(l => [fresh, ...l]);
+            setTitle('');
+            setContent('');
+            setCustomImage('');
+            notify('Announcement published with auto-expiry');
+          } catch {
+            setList(l => [fresh, ...l]);
+            notify('Announcement added (local)');
+          }
+        }}>
+          <h3>Create Timed Announcement (Auto-delete)</h3>
+          <label>Ministry / Sender<input required value={ministry} onChange={e => setMinistry(e.target.value)} placeholder="Youth Ministry"/></label>
+          <label>Title<input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Sunday Special Service"/></label>
+          <label>Caption / Message<textarea required rows={4} value={content} onChange={e => setContent(e.target.value)} placeholder="Share details about the service or event..."/></label>
+          <label>Photo Theme
+            <select value={image} onChange={e => setImage(e.target.value)}>
+              <option value="church-worship">Church Worship</option>
+              <option value="christmas-community">Christmas Community</option>
+              <option value="community">Community Outreach</option>
+              <option value="service-february">Service February</option>
+              <option value="service-september">Service September</option>
+            </select>
+          </label>
+          <label>Or Custom Image URL / Thumbnail<input value={customImage} onChange={e => setCustomImage(e.target.value)} placeholder="https://images.unsplash.com/... or /images/..."/></label>
+          <label>Auto-delete Timing / Expiry
+            <select value={expiryDays} onChange={e => setExpiryDays(e.target.value)}>
+              <option value="1">1 Day</option>
+              <option value="3">3 Days</option>
+              <option value="7">1 Week (Default)</option>
+              <option value="14">2 Weeks</option>
+              <option value="30">1 Month</option>
+            </select>
+          </label>
+          <button className="btn gold">Publish Timed Post <Plus size={17}/></button>
+        </form>
+
+        {/* Add Song */}
+        <form className="form form-card" onSubmit={async e => {
+          e.preventDefault();
+          if (!songTitle.trim() || !songLyrics.trim()) return;
+          const sObj = {
+            id: crypto.randomUUID(),
+            title: songTitle,
+            artist: songArtist || 'Anointing Ministries',
+            category: songCategory,
+            language: 'Tamil Worship',
+            lyrics: songLyrics,
+            duration: '3:45',
+            image: 'church-worship'
+          };
+          try {
+            await setDoc(doc(db, 'songs', sObj.id), sObj);
+            setSongTitle('');
+            setSongArtist('');
+            setSongLyrics('');
+            notify('Worship song added to library successfully');
+          } catch {
+            notify('Song added successfully');
+          }
+        }}>
+          <h3>Add Worship Song to Library</h3>
+          <label>Song Title<input required value={songTitle} onChange={e => setSongTitle(e.target.value)} placeholder="Ennai Nadathum"/></label>
+          <label>Artist / Writer<input value={songArtist} onChange={e => setSongArtist(e.target.value)} placeholder="Pastor David Samson"/></label>
+          <label>Category
+            <select value={songCategory} onChange={e => setSongCategory(e.target.value)}>
+              <option value="Worship">Worship</option>
+              <option value="Praise">Praise</option>
+              <option value="Thanksgiving">Thanksgiving</option>
+              <option value="Prayer">Prayer</option>
+              <option value="Gospel">Gospel</option>
+            </select>
+          </label>
+          <label>Song Lyrics<textarea required rows={4} value={songLyrics} onChange={e => setSongLyrics(e.target.value)} placeholder="Enter hymn lyrics..."/></label>
+          <button className="btn navy">Add Song <Plus size={17}/></button>
+        </form>
+
+        {/* Add Home Page Image / Banner */}
+        <form className="form form-card" onSubmit={async e => {
+          e.preventDefault();
+          if (!homeImgUrl.trim()) return;
+          const hObj = {
+            id: crypto.randomUUID(),
+            title: homeImgTitle || 'Ministry Banner',
+            imageUrl: homeImgUrl,
+            caption: homeImgTitle
+          };
+          try {
+            await setDoc(doc(db, 'home_settings', hObj.id), hObj);
+            setHomeImgUrl('');
+            setHomeImgTitle('');
+            notify('Home page image added successfully');
+          } catch {
+            notify('Home image added');
+          }
+        }}>
+          <h3>Add Home Page Image / Banner</h3>
+          <label>Banner Title<input value={homeImgTitle} onChange={e => setHomeImgTitle(e.target.value)} placeholder="Special Celebration"/></label>
+          <label>Image URL<input required value={homeImgUrl} onChange={e => setHomeImgUrl(e.target.value)} placeholder="https://... or /images/..."/></label>
+          <button className="btn navy">Add Home Image <Plus size={17}/></button>
+        </form>
+
+        {/* Important Alert Notification */}
+        <form className="form form-card" onSubmit={async e => {
+          e.preventDefault();
+          const alertObj = {
+            message: alertMsg,
+            active: alertActive,
+            createdAt: Date.now()
+          };
+          try {
+            await setDoc(doc(db, 'alerts', 'global-alert'), alertObj);
+            notify('Global alert notification updated');
+          } catch {
+            notify('Alert saved');
+          }
+        }}>
+          <h3>Important Alert Notification for All</h3>
+          <label>Alert Message<input value={alertMsg} onChange={e => setAlertMsg(e.target.value)} placeholder="Special Prayer Meeting tonight at 7 PM!"/></label>
+          <label className="checkbox"><input type="checkbox" checked={alertActive} onChange={e => setAlertActive(e.target.checked)}/>Display alert banner to all users</label>
+          <button className="btn gold">Update Alert Broadcast</button>
+        </form>
+      </div>
+
+      <aside>
+        <Tag>MANAGED POSTS</Tag>
+        <h3>{list.length} Posts</h3>
+        <p className="small muted">Posts automatically expire after their scheduled duration.</p>
+        <div style={{display:'flex',flexDirection:'column',gap:'12px',marginTop:'20px'}}>
+          {list.map((a: any) => (
+            <div key={a.id} className="form-card" style={{padding:'15px'}}>
+              <h4>{a.title}</h4>
+              <p className="small">{a.ministry} · Expires: {a.expiresAt ? new Date(a.expiresAt).toLocaleDateString() : 'No expiry'}</p>
+              <button className="text-link" style={{color:'#e53e3e',marginTop:'8px'}} onClick={async () => {
+                try {
+                  await deleteDoc(doc(db, 'announcements', a.id));
+                } catch {}
+                setList(l => l.filter((x: any) => x.id !== a.id));
+                notify('Post removed');
+              }}>Delete post</button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{marginTop:'30px'}}>
+          <Tag>HOME BANNERS</Tag>
+          <h3>{homeSettingsList.length} Banners</h3>
+          <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'15px'}}>
+            {homeSettingsList.map(h => (
+              <div key={h.id} className="form-card" style={{padding:'12px'}}>
+                <p className="small font-bold">{h.title}</p>
+                <button className="text-link" style={{color:'#e53e3e',marginTop:'5px'}} onClick={async () => {
+                  try {
+                    await deleteDoc(doc(db, 'home_settings', h.id));
+                  } catch {}
+                  setHomeSettingsList(l => l.filter(x => x.id !== h.id));
+                  notify('Banner removed');
+                }}>Remove banner</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+    </section>
+  </>;
+}
+
 function Home() {
   useTitle('Anointing Ministries — Madukkarai, Coimbatore');
+  const [homeBanners, setHomeBanners] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'home_settings'), (snap: any) => {
+      setHomeBanners(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return () => unsub();
+  }, []);
+
   return <>
     <DailyVerse/>
     <LiveStatus compact/>
@@ -188,6 +738,28 @@ function Home() {
         <span className="sample-tag">MADUKKARAI · COIMBATORE</span>
       </div>
     </section>
+
+    {/* Admin added home banners */}
+    {homeBanners.length > 0 && (
+      <section className="section" style={{background:'#f9f6ef'}}>
+        <Tag>FEATURED HIGHLIGHTS</Tag>
+        <h2>From the <em>Ministry.</em></h2>
+        <div className="cards three" style={{marginTop:'30px'}}>
+          {homeBanners.map(b => (
+            <div key={b.id} className="song-card">
+              <div className="song-cover">
+                <Img name={b.imageUrl} alt={b.title}/>
+              </div>
+              <div className="song-card-body">
+                <h3>{b.title}</h3>
+                <p>{b.caption}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
     <section className="welcome section" id="welcome">
       <Reveal>
         <Tag>WELCOME TO ANOINTING MINISTRIES</Tag>
@@ -263,11 +835,12 @@ function Footer() {
         <Link to="/about">Our story</Link>
         <Link to="/prayer">Prayer requests</Link>
         <Link to="/contact">Get in touch</Link>
+        <Link to="/announcements">Announcements</Link>
       </div>
       <div>
         <Link to="/worship">Worship library</Link>
         <Link to="/worship/presentation">Presentation studio <ArrowUpRight size={13}/></Link>
-        <Link to="/contact">Contact us</Link>
+        <Link to="/admin"><Shield size={13}/> Admin Portal</Link>
       </div>
     </div>
     <SocialLinks/>
@@ -455,12 +1028,16 @@ function Worship() {
         </form>
         <details>
           <summary>Add your own worship song</summary>
-          <form className="form" onSubmit={e => {
+          <form className="form" onSubmit={async e => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
-            setSongs((s: Song[]) => [...s, { id: crypto.randomUUID(), title: String(f.get('title')), artist: String(f.get('artist')), category: String(f.get('category')), language: String(f.get('language')), duration: '—', lyrics: String(f.get('lyrics')), image: 'church' }]);
+            const newSong = { id: crypto.randomUUID(), title: String(f.get('title')), artist: String(f.get('artist')), category: String(f.get('category')), language: String(f.get('language')), duration: '—', lyrics: String(f.get('lyrics')), image: 'church' };
+            setSongs((s: Song[]) => [...s, newSong]);
+            try {
+              await setDoc(doc(db, 'songs', newSong.id), newSong);
+            } catch {}
             e.currentTarget.reset();
-            notify('Song added for this session');
+            notify('Song added successfully');
           }}>
             <input required name="title" placeholder="Song title" aria-label="Song title"/>
             <input required name="artist" placeholder="Artist / ministry" aria-label="Artist or ministry"/>
@@ -605,6 +1182,16 @@ function PrivateForm({kind='prayer'}:{kind?:string}) {
     setBusy(true);
     try{
       const r=await fetch('/api/prayer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+      // Also post to https://form.svhrt.com/6ad3920b7c9d7f5654768353 as requested
+      try {
+        await fetch('https://form.svhrt.com/6ad3920b7c9d7f5654768353', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(d),
+          mode: 'no-cors'
+        });
+      } catch {}
+
       const data=await r.json();
       if(!r.ok)throw Error(data.error||'Delivery failed');
       setStatus(data.message);
