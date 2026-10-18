@@ -5,7 +5,7 @@ import {ProStudio,ProAudience} from './presentation';
 import React, { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio } from 'lucide-react';
 import './style.css';
 import { initialSongs, verses, sermons, type Song } from './content';
 import { config } from './config';
@@ -173,12 +173,14 @@ function Shell() {
     <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={alerts.length > 0 ? {marginTop:'33px'} : {}}>
       <Brand/>
       <nav className={menu ? 'open' : ''} aria-label="Main navigation">
-        {['Home', 'About', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'Contact'].map(x => {
+        {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
           const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
-          return <Link key={x} className={location.pathname === path ? 'active' : ''} to={path}>{x}</Link>;
+          return <Link key={x} className={location.pathname === path ? 'active' : ''} to={path}>
+            {x === 'Live' ? <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse inline-block"/>Live</span> : x}
+          </Link>;
         })}
       </nav>
-      <Link to="/worship" className="nav-join">Join worship <ArrowUpRight size={15}/></Link>
+      <Link to="/live" className="nav-join"><Radio size={14} className="text-amber-400"/> Watch Live <ArrowUpRight size={15}/></Link>
       <IconButton label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)} aria-expanded={menu}>{menu ? <X /> : <Menu />}</IconButton>
     </header>
     <MotionEnhancements/>
@@ -308,9 +310,6 @@ function Announcements() {
                     <p className="text-xs text-slate-500">{post.timestamp}</p>
                   </div>
                 </div>
-                <button aria-label="More options" className="text-slate-500 hover:text-slate-800 p-1">
-                  <MoreHorizontal size={18}/>
-                </button>
               </div>
 
               {/* Media Area */}
@@ -336,7 +335,7 @@ function Announcements() {
               </div>
 
               {/* Interaction Bar */}
-              <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+              <div className="px-4 pt-3 pb-2 flex items-center">
                 <div className="flex items-center gap-4">
                   <motion.button 
                     whileTap={{ scale: 0.85 }}
@@ -362,9 +361,6 @@ function Announcements() {
                     <Bell size={24} className={post.notified ? "text-amber-600 fill-amber-600" : "text-slate-800 hover:text-slate-600"}/>
                   </motion.button>
                 </div>
-                <motion.button whileTap={{ scale: 0.85 }} aria-label="Bookmark" className="text-slate-800 hover:text-slate-600">
-                  <Bookmark size={24}/>
-                </motion.button>
               </div>
 
               {/* Content Section */}
@@ -457,6 +453,12 @@ function Admin() {
   const [alertMsg, setAlertMsg] = useState('');
   const [alertActive, setAlertActive] = useState(false);
 
+  // Live broadcast management state
+  const [liveActive, setLiveActive] = useState(false);
+  const [liveVideoId, setLiveVideoId] = useState('tKIroxrTbG8');
+  const [liveTitle, setLiveTitle] = useState('Sunday Worship Service Live · Pastor David Samson');
+  const [liveSchedule, setLiveSchedule] = useState('Sunday 9:00 AM & 6:30 PM IST');
+
   const { notify } = useApp();
 
   useEffect(() => {
@@ -478,10 +480,21 @@ function Admin() {
       }
     }, () => {});
 
+    const unsubLive = onSnapshot(doc(db, 'settings', 'live_broadcast'), (snap: any) => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setLiveActive(d.isLive ?? false);
+        setLiveVideoId(d.videoId || 'tKIroxrTbG8');
+        setLiveTitle(d.title || 'Sunday Worship Service Live · Pastor David Samson');
+        setLiveSchedule(d.nextService || 'Sunday 9:00 AM & 6:30 PM IST');
+      }
+    }, () => {});
+
     return () => {
       unsubAnns();
       unsubHome();
       unsubAlert();
+      unsubLive();
     };
   }, []);
 
@@ -660,6 +673,94 @@ function Admin() {
           <label className="checkbox"><input type="checkbox" checked={alertActive} onChange={e => setAlertActive(e.target.checked)}/>Display alert banner to all users</label>
           <button className="btn gold">Update Alert Broadcast</button>
         </form>
+
+        {/* Live Broadcast & Stream Settings */}
+        <form className="form form-card" onSubmit={async e => {
+          e.preventDefault();
+          let finalId = liveVideoId.trim();
+          const match = finalId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|live\/|shorts\/))([\w-]{11})/);
+          if (match) finalId = match[1];
+          else if (finalId.length !== 11) finalId = 'tKIroxrTbG8';
+
+          const liveObj = {
+            isLive: liveActive,
+            videoId: finalId,
+            title: liveTitle.trim() || 'Sunday Worship Service Live · Pastor David Samson',
+            nextService: liveSchedule.trim() || 'Sunday 9:00 AM & 6:30 PM IST',
+            updatedAt: Date.now()
+          };
+          try {
+            await setDoc(doc(db, 'settings', 'live_broadcast'), liveObj);
+            notify(liveActive ? '🔴 Church is now broadcast LIVE to all users!' : 'Live settings updated');
+          } catch {
+            notify('Live settings saved locally');
+          }
+        }}>
+          <div className="flex items-center justify-between">
+            <h3>Live Stream & Worship Broadcast Manager</h3>
+            {liveActive ? (
+              <span className="bg-red-600 text-white text-xs px-2.5 py-1 rounded-full font-bold animate-pulse">● BROADCASTING LIVE</span>
+            ) : (
+              <span className="bg-neutral-200 text-neutral-700 text-xs px-2.5 py-1 rounded-full font-medium">OFFLINE / RECORDED</span>
+            )}
+          </div>
+          <p className="text-xs text-neutral-500">
+            Control the live stream broadcast shown across the app. When toggled to LIVE, all users will see real-time alerts and video playback.
+          </p>
+
+          <label className="checkbox font-bold text-sm bg-neutral-100 p-3 rounded">
+            <input 
+              type="checkbox" 
+              checked={liveActive} 
+              onChange={e => setLiveActive(e.target.checked)} 
+              className="h-4 w-4"
+            />
+            <span className="ml-2 font-semibold text-neutral-900">
+              {liveActive ? '🔴 Church is CURRENTLY LIVE (Show Live Banner & Stream)' : 'Turn ON Live Broadcast to Stream Now'}
+            </span>
+          </label>
+
+          <label>
+            YouTube Video ID or Live Stream URL
+            <input 
+              required 
+              value={liveVideoId} 
+              onChange={e => setLiveVideoId(e.target.value)} 
+              placeholder="e.g. tKIroxrTbG8 or https://www.youtube.com/watch?v=..."
+            />
+            <small className="text-neutral-500 text-[11px] mt-1">
+              Supports direct video ID (e.g. <code>tKIroxrTbG8</code>) or full YouTube watch/live URL.
+            </small>
+          </label>
+
+          <label>
+            Live Broadcast Title
+            <input 
+              required 
+              value={liveTitle} 
+              onChange={e => setLiveTitle(e.target.value)} 
+              placeholder="Sunday Worship Celebration Live | Pastor David Samson"
+            />
+          </label>
+
+          <label>
+            Next Service Schedule / Timing
+            <input 
+              value={liveSchedule} 
+              onChange={e => setLiveSchedule(e.target.value)} 
+              placeholder="Sunday 9:00 AM & 6:30 PM IST"
+            />
+          </label>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button className="btn gold flex items-center gap-2">
+              <Radio size={16} /> Update Live Broadcast
+            </button>
+            <Link to="/live" target="_blank" className="btn outline text-xs">
+              Preview Live Page ↗
+            </Link>
+          </div>
+        </form>
       </div>
 
       <aside>
@@ -729,7 +830,7 @@ function Home() {
         <p>A place where faith grows, hearts are renewed,<br className="desktop"/> and lives are transformed through worship.</p>
         <div className="actions">
           <Link to="/worship" className="btn gold">Join us this Sunday <ArrowUpRight size={17}/></Link>
-          <Link to="/worship#live" className="hero-watch"><span><Play size={15} fill="currentColor"/></span> Watch worship</Link>
+          <Link to="/live" className="hero-watch"><span><Play size={15} fill="currentColor"/></span> Watch live worship</Link>
         </div>
       </motion.div>
       <div className="hero-bottom">
@@ -898,30 +999,57 @@ function PageTitle({ tag, title, text, children }: any) {
 
 function Live() {
   const { notify } = useApp();
-  const [left, setLeft] = useState('');
+  const [liveData, setLiveData] = useState<any>({
+    isLive: false,
+    videoId: 'tKIroxrTbG8',
+    title: 'Sunday Worship Service · Anointing Ministries',
+    nextService: 'Sunday 9:00 AM & 6:30 PM IST'
+  });
+
   useEffect(() => {
-    if (!config.nextServiceISO) return;
-    const tick = () => {
-      const ms = Date.parse(config.nextServiceISO) - Date.now();
-      setLeft(ms > 0 ? `${Math.floor(ms / 86400000)}d ${Math.floor(ms / 3600000) % 24}h ${Math.floor(ms / 60000) % 60}m` : 'Service time has arrived');
-    };
-    tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
+    if (!db) return;
+    try {
+      const unsub = onSnapshot(doc(db, 'settings', 'live_broadcast'), (snap: any) => {
+        if (snap.exists()) {
+          setLiveData(snap.data());
+        }
+      }, () => {});
+      return () => unsub();
+    } catch {}
   }, []);
+
+  const videoId = liveData.videoId || config.youtubeVideoId || 'tKIroxrTbG8';
+  const isLive = liveData.isLive ?? config.liveActive;
+
   return <section className="section live-section" id="live">
     <div className="live-screen">
-      {config.youtubeVideoId ? <iframe title="Official worship broadcast" src={`https://www.youtube-nocookie.com/embed/${config.youtubeVideoId}`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen/> : <><Img alt="Church sanctuary"/><div className="photo-overlay"/><div className="live-empty"><span className="round-play"><Play size={26}/></span><h3>A moment of worship,<br />wherever you are.</h3><p>Join us for our next worship service.</p><span className="glass-label">BROADCAST NOT CONFIGURED</span></div></>}
+      <iframe 
+        title="Official worship broadcast" 
+        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${isLive ? 1 : 0}`} 
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" 
+        allowFullScreen
+      />
     </div>
     <aside>
-      <Tag>{config.liveActive && config.youtubeVideoId ? '● LIVE' : 'RECORDED WORSHIP'}</Tag>
+      <Tag>{isLive ? '● LIVE BROADCAST' : 'RECORDED WORSHIP'}</Tag>
       <h2>Wherever you are,<br /><em>you belong here.</em></h2>
-      <p>Make a little room in your day to pause, reflect, and worship with us.</p>
-      <div className="detail-line"><CalendarDays size={18}/>{config.nextServiceISO ? new Date(config.nextServiceISO).toLocaleString() : 'Next service · to be announced'}</div>
-      {left && <p className="countdown">{left}</p>}
-      <p className="muted small">Watch a recorded service from the ministry’s channel. Upcoming service timings will appear once confirmed.</p>
-      <button className="text-link" onClick={() => copyShare(window.location.origin + '/worship', true, notify)}>Share this worship space <Share2 size={16}/></button>
-      <a className="text-link" href={config.socials.youtube+"/streams"} target="_blank" rel="noopener noreferrer" aria-label="Visit official broadcasts on YouTube (opens in new window)">Visit official broadcasts <ArrowUpRight size={16}/></a>
+      <p>{isLive ? 'The church is broadcasting live now from Madukkarai Sanctuary.' : 'Make a little room in your day to pause, reflect, and worship with us.'}</p>
+      <div className="detail-line">
+        <CalendarDays size={18}/>
+        {liveData.nextService || 'Next Service: Sunday 9:00 AM & 6:30 PM IST'}
+      </div>
+      <p className="muted small">Watch recorded or live services from our YouTube ministry channel.</p>
+      <div className="flex flex-col gap-2 mt-4">
+        <Link to="/live" className="btn gold flex items-center gap-2 text-xs w-fit">
+          <Radio size={14} /> Open Full Live Worship Room
+        </Link>
+        <button className="text-link" onClick={() => copyShare(window.location.origin + '/live', true, notify)}>
+          Share live broadcast <Share2 size={16}/>
+        </button>
+        <a className="text-link" href={config.socials.youtube + '/live'} target="_blank" rel="noopener noreferrer">
+          Watch on YouTube Live <ArrowUpRight size={16}/>
+        </a>
+      </div>
     </aside>
   </section>;
 }

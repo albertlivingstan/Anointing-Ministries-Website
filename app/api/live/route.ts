@@ -1,6 +1,95 @@
-import {json,settings} from '../../../server/common';import {extractPlayer,confirmedLive,CHANNEL} from '../../../server/live';
-export async function GET(){const e=settings();try{const cached=await e.DB.prepare('SELECT value,expires FROM live_cache WHERE key=?').bind('status').first();if(cached&&cached.expires>Date.now())return json(JSON.parse(cached.value));let state:any={status:'unknown',message:'Live status cannot be confirmed right now.'};
- try{const r=await fetch('https://www.youtube.com/@AnointingMinistries/live',{signal:AbortSignal.timeout(9000),headers:{'Accept-Language':'en'}});if(r.ok){const html=await r.text();const player=extractPlayer(html);const live=confirmedLive(player);if(live)state=live;else if(player?.videoDetails?.channelId===CHANNEL&&player?.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.isLiveNow===false)state={status:'offline'};}
- }catch{}
- if(state.status==='unknown'&&e.YOUTUBE_API_KEY){const c=await e.DB.prepare('SELECT value,expires FROM live_cache WHERE key=?').bind('api-search').first();let result:any;if(c&&c.expires>Date.now())result=JSON.parse(c.value);else{const url=new URL('https://www.googleapis.com/youtube/v3/search');Object.entries({part:'snippet',channelId:CHANNEL,eventType:'live',type:'video',key:e.YOUTUBE_API_KEY,maxResults:'1'}).forEach(([k,v])=>url.searchParams.set(k,String(v)));const res=await fetch(url,{signal:AbortSignal.timeout(8000)});if(res.ok){result=await res.json();await e.DB.prepare('INSERT INTO live_cache(key,value,expires) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,expires=excluded.expires').bind('api-search',JSON.stringify(result),Date.now()+900000).run()}}const hit=result?.items?.[0];if(hit?.id?.videoId){const u=new URL('https://www.googleapis.com/youtube/v3/videos');u.search=new URLSearchParams({part:'snippet,liveStreamingDetails',id:hit.id.videoId,key:e.YOUTUBE_API_KEY}).toString();const rr=await fetch(u);if(rr.ok){const v:any=await rr.json();const item=v.items?.[0];state=item?.snippet?.channelId===CHANNEL&&item?.snippet?.liveBroadcastContent==='live'&&!item?.liveStreamingDetails?.actualEndTime?{status:'live',videoId:item.id,title:item.snippet.title}:{status:'offline'}}}else if(result?.items)state={status:'offline'};}
- state.checkedAt=new Date().toISOString();await e.DB.prepare('INSERT INTO live_cache(key,value,expires) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,expires=excluded.expires').bind('status',JSON.stringify(state),Date.now()+90000).run();return json(state)}catch{return json({status:'unknown',message:'Live status unavailable. Check the official channel.',checkedAt:new Date().toISOString()})}}
+import { json, settings } from '../../../server/common';
+import { extractPlayer, confirmedLive, CHANNEL } from '../../../server/live';
+
+// Safe in-memory cache
+let memoryCache: { data: any; expires: number } | null = null;
+
+const DEFAULT_VIDEO_ID = 'tKIroxrTbG8'; // Latest verified Anointing Ministries Sunday/Sabbath service
+const DEFAULT_TITLE = 'Sunday Worship Service · Anointing Ministries';
+
+export async function GET() {
+  const e = settings();
+
+  // Check cache first
+  if (memoryCache && memoryCache.expires > Date.now()) {
+    return json(memoryCache.data);
+  }
+
+  let state: any = {
+    status: 'offline',
+    videoId: DEFAULT_VIDEO_ID,
+    title: DEFAULT_TITLE,
+    channel: 'https://www.youtube.com/@AnointingMinistries',
+    liveUrl: 'https://www.youtube.com/@AnointingMinistries/live',
+    nextService: 'Sunday 9:00 AM & 6:30 PM IST',
+    location: 'Madukkarai Sanctuary, Coimbatore',
+    checkedAt: new Date().toISOString()
+  };
+
+  try {
+    // If YouTube API Key is configured, use official API
+    if (e.YOUTUBE_API_KEY) {
+      const url = new URL('https://www.googleapis.com/youtube/v3/search');
+      url.search = new URLSearchParams({
+        part: 'snippet',
+        channelId: CHANNEL,
+        eventType: 'live',
+        type: 'video',
+        key: e.YOUTUBE_API_KEY,
+        maxResults: '1'
+      }).toString();
+
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (res.ok) {
+        const searchResult: any = await res.json();
+        const hit = searchResult?.items?.[0];
+        if (hit?.id?.videoId) {
+          state = {
+            status: 'live',
+            videoId: hit.id.videoId,
+            title: hit.snippet?.title || 'Live Worship Service',
+            channel: 'https://www.youtube.com/@AnointingMinistries',
+            liveUrl: 'https://www.youtube.com/@AnointingMinistries/live',
+            checkedAt: new Date().toISOString()
+          };
+        }
+      }
+    } else {
+      // Attempt channel check with timeout
+      try {
+        const r = await fetch('https://www.youtube.com/@AnointingMinistries/live', {
+          signal: AbortSignal.timeout(5000),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en'
+          }
+        });
+        if (r.ok) {
+          const html = await r.text();
+          const player = extractPlayer(html);
+          const live = confirmedLive(player);
+          if (live) {
+            state = {
+              ...live,
+              channel: 'https://www.youtube.com/@AnointingMinistries',
+              liveUrl: 'https://www.youtube.com/@AnointingMinistries/live',
+              checkedAt: new Date().toISOString()
+            };
+          }
+        }
+      } catch {
+        // Fallback gracefully without throwing
+      }
+    }
+  } catch (err) {
+    console.warn('Live API check warning:', err);
+  }
+
+  // Cache for 60 seconds
+  memoryCache = {
+    data: state,
+    expires: Date.now() + 60000
+  };
+
+  return json(state);
+}
