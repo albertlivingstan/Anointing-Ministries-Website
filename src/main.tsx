@@ -45,17 +45,56 @@ function IconButton({ label, children, ...props }: any) { return <button classNa
 function Tag({ children }: any) { return <span className="eyebrow">{children}</span>; }
 function Reveal({ children, className = '' }: any) { return <motion.div className={className} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .65 }}>{children}</motion.div>; }
 
+function playNotificationChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now); // D5
+    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.18); // A5
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(880, now);
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.18); // D6
+
+    gainNode.gain.setValueAtTime(0.22, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.85);
+    osc2.stop(now + 0.85);
+  } catch {}
+}
+
 export function App() {
-  const [songs, setSongs] = useState(initialSongs);
+  const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [current, setCurrent] = useState<Song | null>(null);
   const [favs, setFavs] = useStored<string[]>('grace-favorites', []);
   const [recent, setRecent] = useStored<string[]>('grace-recent', []);
   const [toast, setToast] = useState('');
   const [modal, setModal] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+  const [liveInfo, setLiveInfo] = useState<any>({ isLive: false, videoId: 'tKIroxrTbG8', title: 'Sunday Worship Service · Anointing Ministries', nextService: 'Sunday 9:00 AM & 6:30 PM IST' });
+  const [alertsModal, setAlertsModal] = useState(false);
   const notify = (m: string) => setToast(m);
 
-  // Sync songs and alerts from Firestore
+  const lastAlertKey = useRef<string>('');
+  const lastLiveStatus = useRef<boolean>(false);
+  const initialMount = useRef<boolean>(true);
+
+  // Sync songs, alerts, and live broadcast from Firestore
   useEffect(() => {
     if (!db) return;
     const unsubSongs = onSnapshot(collection(db, 'songs'), (snapshot: any) => {
@@ -72,11 +111,55 @@ export function App() {
     const unsubAlerts = onSnapshot(collection(db, 'alerts'), (snapshot: any) => {
       const activeAlerts = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })).filter((a: any) => a.active);
       setAlerts(activeAlerts);
+      
+      if (activeAlerts.length > 0) {
+        const key = `${activeAlerts[0].id}-${activeAlerts[0].message}-${activeAlerts[0].updatedAt || activeAlerts[0].createdAt || ''}`;
+        if (!initialMount.current && lastAlertKey.current && lastAlertKey.current !== key) {
+          playNotificationChime();
+          notify(`🔔 Church Alert: ${activeAlerts[0].message}`);
+          setAlertDismissed(false);
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try {
+              new Notification('Anointing Ministries Important Alert', {
+                body: activeAlerts[0].message,
+                icon: '/images/anointing-logo.jpg',
+                tag: 'church-alert'
+              });
+            } catch {}
+          }
+        }
+        lastAlertKey.current = key;
+      }
     }, () => {});
 
+    const unsubLive = onSnapshot(doc(db, 'settings', 'live_broadcast'), (snap: any) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setLiveInfo(data);
+        if (!initialMount.current && !lastLiveStatus.current && data.isLive) {
+          playNotificationChime();
+          notify('🔴 Anointing Ministries is LIVE! Tap Watch Live to worship with us.');
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try {
+              new Notification('🔴 Anointing Ministries is LIVE NOW', {
+                body: data.title || 'Sunday Worship Service is broadcasting now from Madukkarai Sanctuary.',
+                icon: '/images/anointing-logo.jpg',
+                tag: 'church-live'
+              });
+            } catch {}
+          }
+        }
+        lastLiveStatus.current = !!data.isLive;
+      }
+    }, () => {});
+
+    const timer = setTimeout(() => { initialMount.current = false; }, 2500);
+
     return () => {
+      clearTimeout(timer);
       unsubSongs();
       unsubAlerts();
+      unsubLive();
     };
   }, []);
 
@@ -118,7 +201,7 @@ export function App() {
 
   const toggle = (id: string) => setFavs((f) => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
 
-  return <Ctx.Provider value={{ songs, setSongs, current, setCurrent, favs, toggle, recent, play, notify, setModal, alerts }}>
+  return <Ctx.Provider value={{ songs, setSongs, current, setCurrent, favs, toggle, recent, play, notify, setModal, alerts, alertDismissed, setAlertDismissed, liveInfo, alertsModal, setAlertsModal }}>
     <MotionConfig reducedMotion="user">
       <Routes>
         <Route path="/worship/presentation" element={<ProStudio />}/>
@@ -147,7 +230,7 @@ function Shell() {
   const [menu, setMenu] = useState(false), [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const home = location.pathname === '/';
-  const { alerts } = useApp();
+  const { alerts, alertDismissed, setAlertDismissed, liveInfo, alertsModal, setAlertsModal } = useApp();
 
   useEffect(() => {
     setMenu(false);
@@ -162,15 +245,28 @@ function Shell() {
     return () => window.removeEventListener('scroll', f);
   }, []);
 
+  const hasActiveAlert = alerts.length > 0 && !alertDismissed;
+
   return <>
     <a className="skip" href="#main">Skip to content</a>
-    {alerts.length > 0 && (
-      <div className="bg-amber-600 text-white px-4 py-2 text-xs flex items-center justify-center gap-2 fixed top-0 left-0 right-0 z-50 shadow-md">
-        <AlertCircle size={16}/>
-        <span><b>Important Alert:</b> {alerts[0].message}</span>
+    {hasActiveAlert && (
+      <div className="bg-amber-600 text-white px-4 py-2 text-xs flex items-center justify-between gap-3 fixed top-0 left-0 right-0 z-50 shadow-md">
+        <div className="flex items-center gap-2 max-w-4xl mx-auto flex-1 justify-center">
+          <span className="flex h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
+          <AlertCircle size={15} className="shrink-0"/>
+          <span><b>Important Alert:</b> {alerts[0].message}</span>
+        </div>
+        <button 
+          onClick={() => setAlertDismissed(true)} 
+          className="p-1 hover:bg-black/20 rounded transition text-white shrink-0"
+          aria-label="Dismiss alert"
+          title="Dismiss alert"
+        >
+          <X size={15}/>
+        </button>
       </div>
     )}
-    <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={alerts.length > 0 ? {marginTop:'33px'} : {}}>
+    <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={hasActiveAlert ? {marginTop:'36px'} : {}}>
       <Brand/>
       <nav className={menu ? 'open' : ''} aria-label="Main navigation">
         {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
@@ -180,9 +276,106 @@ function Shell() {
           </Link>;
         })}
       </nav>
-      <Link to="/live" className="nav-join"><Radio size={14} className="text-amber-400"/> Watch Live <ArrowUpRight size={15}/></Link>
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={() => setAlertsModal(true)} 
+          className="icon-btn relative" 
+          aria-label="View church announcements and alerts"
+          title="Church Notifications & Alerts"
+        >
+          <Bell size={18} />
+          {(alerts.length > 0 || liveInfo?.isLive) && (
+            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+          )}
+        </button>
+        <Link to="/live" className="nav-join">
+          <Radio size={14} className={liveInfo?.isLive ? "text-red-400 animate-pulse" : "text-amber-400"}/> 
+          {liveInfo?.isLive ? "● LIVE NOW" : "Watch Live"} 
+          <ArrowUpRight size={15}/>
+        </Link>
+      </div>
       <IconButton label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)} aria-expanded={menu}>{menu ? <X /> : <Menu />}</IconButton>
     </header>
+    <AnimatePresence>
+      {alertsModal && (
+        <div className="modal-shade" onClick={() => setAlertsModal(false)}>
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            exit={{ scale: 0.95, opacity: 0 }} 
+            className="modal max-w-lg bg-white rounded-xl shadow-2xl p-6 relative" 
+            onClick={e => e.stopPropagation()}
+          >
+            <IconButton label="Close notifications" onClick={() => setAlertsModal(false)}><X size={18}/></IconButton>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-800">
+                <Bell size={18} />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-neutral-900 leading-tight">Church Notifications</h3>
+                <small className="text-neutral-500 text-xs">Official alerts & live broadcast updates</small>
+              </div>
+            </div>
+
+            {liveInfo?.isLive && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3.5 mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
+                  <div>
+                    <b className="text-red-950 text-xs block">BROADCASTING LIVE NOW</b>
+                    <span className="text-neutral-700 text-xs">{liveInfo.title || 'Sunday Worship Service'}</span>
+                  </div>
+                </div>
+                <Link to="/live" onClick={() => setAlertsModal(false)} className="btn gold text-xs px-3 py-1.5 shrink-0 flex items-center gap-1">
+                  <Play size={12} fill="currentColor" /> Watch
+                </Link>
+              </div>
+            )}
+
+            {alerts.length > 0 ? (
+              <div className="space-y-3 mb-5">
+                {alerts.map((a: any) => (
+                  <div key={a.id} className="bg-amber-50 border border-amber-200 rounded-lg p-3.5">
+                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs mb-1">
+                      <AlertCircle size={14} /> IMPORTANT CHURCH NOTICE
+                    </div>
+                    <p className="text-sm text-neutral-800">{a.message}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-neutral-500 text-xs">
+                <Check size={28} className="mx-auto text-green-600 mb-2" />
+                <p>No active emergency alerts at this time.</p>
+                <p className="text-[11px] mt-1 text-neutral-400">Regular service schedule continues as planned.</p>
+              </div>
+            )}
+
+            <div className="border-t pt-3 flex items-center justify-between gap-3 text-xs">
+              <Link to="/announcements" onClick={() => setAlertsModal(false)} className="text-amber-800 font-semibold hover:underline">
+                View all announcements →
+              </Link>
+              <button 
+                className="btn outline text-xs px-3 py-1.5" 
+                onClick={async () => {
+                  if ('Notification' in window) {
+                    try {
+                      await Notification.requestPermission();
+                    } catch {}
+                  }
+                  setAlertsModal(false);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
     <MotionEnhancements/>
     <main id="main">
       <Routes>
@@ -659,7 +852,8 @@ function Admin() {
           const alertObj = {
             message: alertMsg,
             active: alertActive,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            updatedAt: Date.now()
           };
           try {
             await setDoc(doc(db, 'alerts', 'global-alert'), alertObj);
@@ -983,7 +1177,6 @@ function Verse() {
       <span className="control-divider"/>
       <IconButton label="Copy verse" onClick={() => copyShare(verses[i].join(' — '), false, notify)}><Copy size={16}/></IconButton>
       <IconButton label="Share verse" onClick={() => copyShare(verses[i].join(' — '), true, notify)}><Share2 size={16}/></IconButton>
-      <IconButton label="Save verse" aria-pressed={saved.includes(verses[i][1])} onClick={() => setSaved(s => s.includes(verses[i][1]) ? s.filter(v => v !== verses[i][1]) : [...s, verses[i][1]])}><Heart size={17} fill={saved.includes(verses[i][1]) ? 'currentColor' : 'none'}/></IconButton>
     </div>
   </section>;
 }
@@ -1025,8 +1218,8 @@ function Live() {
     <div className="live-screen">
       <iframe 
         title="Official worship broadcast" 
-        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${isLive ? 1 : 0}`} 
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" 
+        src={`https://www.youtube.com/embed/${videoId}?autoplay=${isLive ? 1 : 0}&rel=0`} 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
         allowFullScreen
       />
     </div>
@@ -1072,7 +1265,6 @@ function Worship() {
   const filtered = songs.filter((s: Song) => (s.title + ' ' + s.artist).toLowerCase().includes(q.toLowerCase()) && (category === 'All' || s.category === category || s.language === category) && (view === 'All songs' || view === 'Favorites' && favs.includes(s.id) || view === 'Recently played' && recent.includes(s.id) || lists.find(l => l.name === view)?.ids.includes(s.id)));
   return <>
     <PageTitle tag="A HEART OF WORSHIP" title={<>Let your heart <em>find its song.</em></>} text="A quiet moment. A familiar melody. A little closer to Him."/>
-    <div className="section"><LiveStatus/></div>
     <Live />
     <PastorSongs/>
     <section className="section" id="songs">

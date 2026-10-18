@@ -231,7 +231,6 @@ export function VerseActions({ text, reference, verseKey }: { text: string; refe
           setMsg('Copy is unavailable in this browser');
         }
       }}><Copy size={16}/><span>Copy</span></button>
-      <button onClick={() => setSaved(a => a.includes(verseKey) ? a.filter(x => x !== verseKey) : [...a, verseKey])} aria-pressed={saved.includes(verseKey)}><BookOpen size={17}/><span>{saved.includes(verseKey) ? 'Saved' : 'Save'}</span></button>
       <button disabled={busy} onClick={async () => {
         setBusy(true);
         try {
