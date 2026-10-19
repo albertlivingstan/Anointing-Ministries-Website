@@ -273,7 +273,7 @@ function Shell() {
     )}
     <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={hasActiveAlert ? {marginTop:'36px'} : {}}>
       <Brand/>
-      <nav className={menu ? 'open' : ''} aria-label="Main navigation">
+      <nav className="desktop-nav" aria-label="Main navigation">
         {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
           const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
           return <Link key={x} className={location.pathname === path ? 'active' : ''} to={path}>
@@ -281,6 +281,32 @@ function Shell() {
           </Link>;
         })}
       </nav>
+      <AnimatePresence>
+        {menu && (
+          <motion.nav 
+            initial={{ opacity: 0, y: -15, scaleY: 0.96 }}
+            animate={{ opacity: 1, y: 0, scaleY: 1 }}
+            exit={{ opacity: 0, y: -10, scaleY: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            style={{ transformOrigin: 'top' }}
+            className="mobile-glass-nav" 
+            aria-label="Mobile navigation"
+          >
+            <div className="flex flex-col gap-1.5 py-1">
+              {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
+                const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
+                return <Link key={x} onClick={() => setMenu(false)} className={location.pathname === path ? 'active text-amber-400 font-bold py-2.5 px-3 rounded bg-amber-500/10' : 'text-neutral-200 hover:text-white py-2.5 px-3 rounded hover:bg-white/5 transition'} to={path}>
+                  {x === 'Live' ? <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse inline-block"/>Live Broadcast</span> : x}
+                </Link>;
+              })}
+            </div>
+            <div className="pt-4 mt-2 border-t border-white/10">
+              <p className="text-[10px] tracking-widest text-amber-400 uppercase mb-3 font-semibold">Connect With Us</p>
+              <SocialLinks />
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
       <div className="flex items-center gap-2">
         <button
           onClick={() => setLoginModal(true)}

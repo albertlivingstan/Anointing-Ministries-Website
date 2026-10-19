@@ -14,11 +14,28 @@ export function useMemberAuth() {
 
   const login = (nameInput: string, dobInput: string) => {
     const cleanName = nameInput.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanDob = dobInput.trim();
+    const dobInputClean = dobInput.trim().toLowerCase();
 
     const found = membersDatabase.find(m => {
       const dbNameClean = m.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return dbNameClean === cleanName && m.dob === cleanDob;
+      const nameMatch = dbNameClean === cleanName;
+
+      const dbDob = m.dob; // e.g. "2005-05-29"
+      const dbDobDigits = dbDob.replace(/\D/g, ''); // "20050529"
+      const [y, mm, d] = dbDob.split('-');
+      const dbDobAlt1 = `${d}${mm}${y}`; // "29052005"
+      const dbDobAlt2 = `${d}-${mm}-${y}`; // "29-05-2005"
+
+      const inputDobNorm = dobInputClean.replace(/[^0-9]/g, '');
+      const inputDobFull = dobInputClean;
+
+      const dobMatch = 
+        inputDobFull === dbDob.toLowerCase() ||
+        inputDobNorm === dbDobDigits ||
+        inputDobNorm === dbDobAlt1 ||
+        inputDobNorm === dbDobAlt2;
+
+      return nameMatch && dobMatch;
     });
 
     if (found) {
@@ -28,7 +45,7 @@ export function useMemberAuth() {
       } catch {}
       return { success: true, member: found };
     }
-    return { success: false, error: 'Invalid name or Date of Birth (YYYY-MM-DD).' };
+    return { success: false, error: 'Invalid name or Date of Birth / password. Please check spelling & date format.' };
   };
 
   const logout = () => {
@@ -85,7 +102,7 @@ export function MemberLoginModal({ isOpen, onClose }: { isOpen: boolean; onClose
           </div>
           <div>
             <h3 className="font-serif text-lg font-bold leading-tight">Member Login</h3>
-            <p className="text-xs text-neutral-500">Optional · Enable notifications & updates</p>
+            <p className="text-xs text-neutral-500">Optional · Access push notifications & community</p>
           </div>
         </div>
 
@@ -93,8 +110,8 @@ export function MemberLoginModal({ isOpen, onClose }: { isOpen: boolean; onClose
           <div className="space-y-4">
             <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-center">
               <Check size={32} className="mx-auto text-emerald-600 mb-2" />
-              <h4 className="font-serif font-bold text-emerald-900 text-base">Welcome back, {currentUser.name}!</h4>
-              <p className="text-xs text-emerald-700 mt-1">You are logged in and subscribed to church push notifications.</p>
+              <h4 className="font-serif font-bold text-emerald-900 text-base">Welcome, {currentUser.name}!</h4>
+              <p className="text-xs text-emerald-700 mt-1">You are successfully logged in to Anointing Ministries.</p>
             </div>
             <button 
               onClick={() => { logout(); onClose(); }}
@@ -117,24 +134,25 @@ export function MemberLoginModal({ isOpen, onClose }: { isOpen: boolean; onClose
             )}
 
             <label className="block text-xs font-semibold text-neutral-700">
-              Your Full Name (Username)
+              Full Name (Username)
               <input 
                 required 
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. S Elisa David Pratap"
+                placeholder="e.g. Albert Livingstan G"
                 className="w-full mt-1 border border-neutral-300 rounded-lg px-3 py-2 text-xs"
               />
             </label>
 
             <label className="block text-xs font-semibold text-neutral-700">
-              Date of Birth (Password — YYYY-MM-DD)
+              Date of Birth / Password (e.g. 2005-05-29 or 29052005)
               <input 
                 required 
-                type="date"
+                type="text"
                 value={dob}
                 onChange={e => setDob(e.target.value)}
+                placeholder="2005-05-29 or 29052005"
                 className="w-full mt-1 border border-neutral-300 rounded-lg px-3 py-2 text-xs"
               />
             </label>
@@ -147,7 +165,7 @@ export function MemberLoginModal({ isOpen, onClose }: { isOpen: boolean; onClose
             </button>
 
             <p className="text-[11px] text-neutral-400 text-center">
-              Login is entirely optional. You can browse all church content without logging in.
+              Login is optional. Browse freely without an account.
             </p>
           </form>
         )}
