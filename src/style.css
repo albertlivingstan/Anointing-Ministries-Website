@@ -23,3 +23,23 @@
 .pastor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:25px 0}.pastor-grid article{display:flex;gap:18px;padding:25px;background:white;border:1px solid #e4dfd5;border-radius:8px}.pastor-grid small{color:#9b7940;font-size:10px}.pastor-grid h3{font-size:23px;margin:9px 0}.pastor-grid .actions{font-size:11px;gap:14px;margin-top:18px;flex-wrap:wrap}.pastor-song-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#c9a76a20;color:#ac8545;flex-shrink:0}.pastor-player{margin:25px 0;background:#101827;padding:20px;border-radius:8px;color:white}.pastor-player iframe{width:100%;aspect-ratio:16/9;border:0}.pastor-player button,.pastor-player a{margin:15px 15px 0 0;color:inherit;background:none;border:0}.pastor-songs>.search{max-width:600px}@media(max-width:750px){.pastor-grid{grid-template-columns:1fr}.pastor-grid article{padding:20px}.pastor-grid h3{font-size:21px}}
 
 [lang=ta],.stage-words{font-family:"Noto Sans Tamil","DM Sans",sans-serif}.pro-studio p{color:#aab2c0}.daily-front p{color:#a9b4c0}
+
+/* Sleek professional scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 167, 106, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 167, 106, 0.5);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 167, 106, 0.25) transparent;
+}

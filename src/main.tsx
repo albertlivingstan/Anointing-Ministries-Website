@@ -5,7 +5,7 @@ import {ProStudio,ProAudience} from './presentation';
 import React, { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio, User } from 'lucide-react';
 import './style.css';
 import { initialSongs, verses, sermons, type Song } from './content';
 import { config } from './config';
@@ -13,6 +13,7 @@ import {Brand,SocialLinks,MinistryArchive,CommunityConnect,MotionEnhancements,Li
 import { db } from './lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { NotificationBellWithModal } from './components/notifications-manager';
+import { useMemberAuth, MemberLoginModal } from './components/member-login';
 
 function useTitle(t: string) {
   useEffect(() => {
@@ -248,6 +249,9 @@ function Shell() {
 
   const hasActiveAlert = alerts.length > 0 && !alertDismissed;
 
+  const [loginModal, setLoginModal] = useState(false);
+  const { currentUser } = useMemberAuth();
+
   return <>
     <a className="skip" href="#main">Skip to content</a>
     {hasActiveAlert && (
@@ -278,6 +282,15 @@ function Shell() {
         })}
       </nav>
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => setLoginModal(true)}
+          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition text-current"
+          aria-label="Member Login"
+          title={currentUser ? `Logged in as ${currentUser.name}` : "Member Login"}
+        >
+          <User size={15} />
+          {currentUser ? <span className="max-w-[110px] truncate"><b>{currentUser.name}</b></span> : <span>Login</span>}
+        </button>
         <button 
           onClick={() => setAlertsModal(true)} 
           className="icon-btn relative" 
@@ -303,6 +316,9 @@ function Shell() {
     <AnimatePresence>
       {alertsModal && (
         <NotificationBellWithModal isOpen={alertsModal} onClose={() => setAlertsModal(false)} />
+      )}
+      {loginModal && (
+        <MemberLoginModal isOpen={loginModal} onClose={() => setLoginModal(false)} />
       )}
     </AnimatePresence>
     <MotionEnhancements/>
@@ -1135,14 +1151,14 @@ function Home() {
           </div>
         </Link>
         <div className="music-feature">
-          <div className="music-feature-head">
-            <Music2 size={26} strokeWidth={1}/>
-            <span>THE WORSHIP COLLECTION</span>
+          <div className="music-feature-head mb-3">
+            <Music2 size={22} strokeWidth={1}/>
+            <span>OUR WORSHIP VOICE · PASTOR DAVID SAMSON</span>
           </div>
           <h3>Let your heart<br /><em>find its song.</em></h3>
-          <p>Timeless words. A renewed spirit.<br />Make space for a moment of praise.</p>
-          {initialSongs.slice(0, 2).map(s => <SongRow key={s.id} song={s}/>)}
-          <Link className="text-link" to="/worship#songs">Discover the song library <ArrowRight size={17}/></Link>
+          <p>Anointing Ministries Tamil & English Worship Collection. Lift your voice in praise.</p>
+          {initialSongs.slice(0, 3).map(s => <SongRow key={s.id} song={s}/>)}
+          <Link className="text-link" to="/worship#songs">Discover full song library <ArrowRight size={17}/></Link>
         </div>
       </div>
     </section>
