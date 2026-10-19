@@ -14,6 +14,7 @@ import { db } from './lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { NotificationBellWithModal } from './components/notifications-manager';
 import { useMemberAuth, MemberLoginModal } from './components/member-login';
+import { membersDatabase } from './members';
 
 function useTitle(t: string) {
   useEffect(() => {
@@ -635,6 +636,19 @@ function Admin() {
     getDocs(collection(db, 'push_subscriptions')).then(snap => setSubscriberCount(snap.size)).catch(() => {});
   }, []);
 
+  // Prayer requests admin state
+  const [prayerRequests, setPrayerRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsubPrayers = onSnapshot(collection(db, 'prayer_requests'), (snap: any) => {
+      const items = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      items.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      setPrayerRequests(items);
+    }, () => {});
+    return () => unsubPrayers();
+  }, []);
+
   const sendAdminPush = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pushTitle.trim() || !pushBody.trim()) return;
@@ -1039,6 +1053,73 @@ function Admin() {
             </button>
           </div>
         </form>
+
+        {/* Member Logins & Prayer Requests Dashboard */}
+        <div className="form-card space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h3 className="font-serif text-xl font-bold">Member Logins & Prayer Requests</h3>
+              <p className="text-xs text-neutral-500">Real-time overview of registered church members, logins, and submitted prayer requests.</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="bg-amber-100 text-amber-900 text-xs px-3 py-1.5 rounded-full font-bold">
+                {membersDatabase.length} Total Members
+              </span>
+              <span className="bg-blue-100 text-blue-900 text-xs px-3 py-1.5 rounded-full font-bold">
+                {prayerRequests.length} Prayer Requests
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700 mb-3">Submitted Prayer Requests ({prayerRequests.length})</h4>
+            <div className="max-h-80 overflow-y-auto space-y-3 pr-2">
+              {prayerRequests.length > 0 ? prayerRequests.map((p: any) => (
+                <div key={p.id} className="bg-neutral-50 border border-neutral-200 p-4 rounded-xl text-xs space-y-1.5">
+                  <div className="flex items-center justify-between font-bold text-neutral-900">
+                    <span className="text-amber-900">{p.name} ({p.email})</span>
+                    <span className="text-neutral-400 font-normal">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleString() : 'Recent'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-neutral-500">
+                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold">{p.category || 'Prayer'}</span>
+                    {p.birthday && <span>🎂 Birthday: {p.birthday}</span>}
+                  </div>
+                  <p className="text-neutral-800 bg-white p-3 rounded border border-neutral-100">{p.message}</p>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await deleteDoc(doc(db, 'prayer_requests', p.id));
+                        notify('Prayer request marked as prayed / archived');
+                      } catch {}
+                    }} 
+                    className="text-rose-600 font-semibold hover:underline mt-1"
+                  >
+                    Archive / Complete Request
+                  </button>
+                </div>
+              )) : (
+                <div className="text-center py-8 text-neutral-400 text-xs">
+                  <p>No prayer requests submitted yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700 mb-2">Registered Church Members Directory ({membersDatabase.length})</h4>
+            <p className="text-xs text-neutral-500 mb-3">Members can log in optionally using their Full Name & Date of Birth.</p>
+            <div className="max-h-60 overflow-y-auto border border-neutral-200 rounded-xl divide-y">
+              {membersDatabase.map((m, idx) => (
+                <div key={idx} className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-neutral-50">
+                  <span className="font-semibold text-neutral-900">{idx + 1}. {m.name}</span>
+                  <span className="text-neutral-500">DOB: {m.dob}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <aside>
@@ -1593,6 +1674,14 @@ function PrivateForm({kind='prayer'}:{kind?:string}) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(d),
           mode: 'no-cors'
+        });
+      } catch {}
+
+      // Save prayer request to Firestore for Admin dashboard
+      try {
+        await setDoc(doc(db, 'prayer_requests', crypto.randomUUID()), {
+          ...d,
+          createdAt: Date.now()
         });
       } catch {}
 
