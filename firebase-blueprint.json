@@ -57,6 +57,36 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "message"]
+    },
+    "PushSubscription": {
+      "title": "PushSubscription",
+      "description": "FCM device push subscription tokens and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 200 },
+        "token": { "type": "string", "maxLength": 500 },
+        "language": { "type": "string", "maxLength": 20 },
+        "livestream": { "type": "boolean" },
+        "verses": { "type": "boolean" },
+        "events": { "type": "boolean" },
+        "songs": { "type": "boolean" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "token"]
+    },
+    "NotificationHistory": {
+      "title": "NotificationHistory",
+      "description": "Log of sent notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "body": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "maxLength": 50 },
+        "url": { "type": "string", "maxLength": 300 },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "title", "body"]
     }
   },
   "firestore": {
@@ -75,6 +105,14 @@
     "/alerts/{alertId}": {
       "schema": "Alert",
       "description": "Collection of system-wide important alerts"
+    },
+    "/push_subscriptions/{subId}": {
+      "schema": "PushSubscription",
+      "description": "FCM push token registrations"
+    },
+    "/notification_history/{historyId}": {
+      "schema": "NotificationHistory",
+      "description": "Archived sent notifications"
     }
   }
 }

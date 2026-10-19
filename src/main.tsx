@@ -12,6 +12,7 @@ import { config } from './config';
 import {Brand,SocialLinks,MinistryArchive,CommunityConnect,MotionEnhancements,LightAtmosphere} from './ministry';
 import { db } from './lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { NotificationBellWithModal } from './components/notifications-manager';
 
 function useTitle(t: string) {
   useEffect(() => {
@@ -301,79 +302,7 @@ function Shell() {
     </header>
     <AnimatePresence>
       {alertsModal && (
-        <div className="modal-shade" onClick={() => setAlertsModal(false)}>
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
-            exit={{ scale: 0.95, opacity: 0 }} 
-            className="modal max-w-lg bg-white rounded-xl shadow-2xl p-6 relative" 
-            onClick={e => e.stopPropagation()}
-          >
-            <IconButton label="Close notifications" onClick={() => setAlertsModal(false)}><X size={18}/></IconButton>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-800">
-                <Bell size={18} />
-              </div>
-              <div>
-                <h3 className="font-serif text-lg font-bold text-neutral-900 leading-tight">Church Notifications</h3>
-                <small className="text-neutral-500 text-xs">Official alerts & live broadcast updates</small>
-              </div>
-            </div>
-
-            {liveInfo?.isLive && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3.5 mb-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
-                  <div>
-                    <b className="text-red-950 text-xs block">BROADCASTING LIVE NOW</b>
-                    <span className="text-neutral-700 text-xs">{liveInfo.title || 'Sunday Worship Service'}</span>
-                  </div>
-                </div>
-                <Link to="/live" onClick={() => setAlertsModal(false)} className="btn gold text-xs px-3 py-1.5 shrink-0 flex items-center gap-1">
-                  <Play size={12} fill="currentColor" /> Watch
-                </Link>
-              </div>
-            )}
-
-            {alerts.length > 0 ? (
-              <div className="space-y-3 mb-5">
-                {alerts.map((a: any) => (
-                  <div key={a.id} className="bg-amber-50 border border-amber-200 rounded-lg p-3.5">
-                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs mb-1">
-                      <AlertCircle size={14} /> IMPORTANT CHURCH NOTICE
-                    </div>
-                    <p className="text-sm text-neutral-800">{a.message}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-neutral-500 text-xs">
-                <Check size={28} className="mx-auto text-green-600 mb-2" />
-                <p>No active emergency alerts at this time.</p>
-                <p className="text-[11px] mt-1 text-neutral-400">Regular service schedule continues as planned.</p>
-              </div>
-            )}
-
-            <div className="border-t pt-3 flex items-center justify-between gap-3 text-xs">
-              <Link to="/announcements" onClick={() => setAlertsModal(false)} className="text-amber-800 font-semibold hover:underline">
-                View all announcements →
-              </Link>
-              <button 
-                className="btn outline text-xs px-3 py-1.5" 
-                onClick={async () => {
-                  if ('Notification' in window) {
-                    try {
-                      await Notification.requestPermission();
-                    } catch {}
-                  }
-                  setAlertsModal(false);
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
-        </div>
+        <NotificationBellWithModal isOpen={alertsModal} onClose={() => setAlertsModal(false)} />
       )}
     </AnimatePresence>
     <MotionEnhancements/>
@@ -651,6 +580,42 @@ function Admin() {
   const [liveVideoId, setLiveVideoId] = useState('tKIroxrTbG8');
   const [liveTitle, setLiveTitle] = useState('Sunday Worship Service Live · Pastor David Samson');
   const [liveSchedule, setLiveSchedule] = useState('Sunday 9:00 AM & 6:30 PM IST');
+
+  // Push notification dashboard state
+  const [pushTitle, setPushTitle] = useState('');
+  const [pushBody, setPushBody] = useState('');
+  const [pushCategory, setPushCategory] = useState('Announcement');
+  const [pushUrl, setPushUrl] = useState('/');
+  const [subscriberCount, setSubscriberCount] = useState(0);
+
+  useEffect(() => {
+    if (!db) return;
+    getDocs(collection(db, 'push_subscriptions')).then(snap => setSubscriberCount(snap.size)).catch(() => {});
+  }, []);
+
+  const sendAdminPush = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pushTitle.trim() || !pushBody.trim()) return;
+    const item = {
+      id: crypto.randomUUID(),
+      title: pushTitle,
+      body: pushBody,
+      category: pushCategory,
+      url: pushUrl,
+      timestamp: Date.now()
+    };
+    try {
+      await setDoc(doc(db, 'notification_history', item.id), item);
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(item.title, { body: item.body, icon: '/images/anointing-logo.jpg' });
+      }
+      setPushTitle('');
+      setPushBody('');
+      notify(`Push notification broadcasted to ${subscriberCount || 1} subscribers!`);
+    } catch {
+      notify('Broadcast saved');
+    }
+  };
 
   const { notify } = useApp();
 
@@ -953,6 +918,83 @@ function Admin() {
             <Link to="/live" target="_blank" className="btn outline text-xs">
               Preview Live Page ↗
             </Link>
+          </div>
+        </form>
+
+        {/* Push Notification Dashboard */}
+        <form className="form form-card" onSubmit={sendAdminPush}>
+          <div className="flex items-center justify-between">
+            <h3>Push Notification Dashboard</h3>
+            <span className="bg-amber-100 text-amber-900 text-xs px-2.5 py-1 rounded-full font-bold">
+              {subscriberCount} Active Subscribers
+            </span>
+          </div>
+          <p className="text-xs text-neutral-500">
+            Broadcast instant push notifications to all subscribed church members worldwide.
+          </p>
+
+          <label>
+            Notification Category
+            <select value={pushCategory} onChange={e => setPushCategory(e.target.value)}>
+              <option value="Announcement">Church Announcement</option>
+              <option value="Livestream">🔴 YouTube Livestream Alert</option>
+              <option value="Bible Verse">📖 Daily Bible Verse (English/Tamil)</option>
+              <option value="Church Event">📅 Church Event Reminder</option>
+              <option value="Worship Song">🎵 New Worship Song Release</option>
+            </select>
+          </label>
+
+          <label>
+            Notification Title
+            <input 
+              required 
+              value={pushTitle} 
+              onChange={e => setPushTitle(e.target.value)} 
+              placeholder="🔴 ANOINTING MINISTRIES IS LIVE!"
+            />
+          </label>
+
+          <label>
+            Notification Message
+            <textarea 
+              required 
+              rows={3} 
+              value={pushBody} 
+              onChange={e => setPushBody(e.target.value)} 
+              placeholder="Join Pastor David Samson for live worship, prayer, and God's Word..."
+            />
+          </label>
+
+          <label>
+            Target Page URL / Action Link
+            <input 
+              value={pushUrl} 
+              onChange={e => setPushUrl(e.target.value)} 
+              placeholder="/live, /bible, /worship, or https://youtube.com/..."
+            />
+          </label>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button className="btn gold flex items-center gap-2">
+              <Send size={16} /> Broadcast Push Notification Now
+            </button>
+            <button 
+              type="button" 
+              onClick={() => {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  new Notification(pushTitle || 'Test Notification', {
+                    body: pushBody || 'This is a test notification from Anointing Ministries.',
+                    icon: '/images/anointing-logo.jpg'
+                  });
+                  notify('Test push sent to this device');
+                } else {
+                  alert('Please enable notifications first in the notification bell menu.');
+                }
+              }}
+              className="btn outline text-xs"
+            >
+              Send Test Push to Me
+            </button>
           </div>
         </form>
       </div>
