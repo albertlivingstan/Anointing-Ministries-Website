@@ -5,7 +5,7 @@ import {ProStudio,ProAudience} from './presentation';
 import React, { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio, User } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio, User, Home as HomeIcon } from 'lucide-react';
 import './style.css';
 import { initialSongs, verses, sermons, type Song } from './content';
 import { config } from './config';
@@ -285,38 +285,127 @@ function Shell() {
       <AnimatePresence>
         {menu && (
           <motion.nav 
-            initial={{ opacity: 0, y: -15, scaleY: 0.96 }}
-            animate={{ opacity: 1, y: 0, scaleY: 1 }}
-            exit={{ opacity: 0, y: -10, scaleY: 0.96 }}
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: 'top' }}
             className="mobile-glass-nav" 
             aria-label="Mobile navigation"
           >
-            <div className="flex flex-col gap-1.5 py-1">
-              {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
-                const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
-                return <Link key={x} onClick={() => setMenu(false)} className={location.pathname === path ? 'active text-amber-400 font-bold py-2.5 px-3 rounded bg-amber-500/10' : 'text-neutral-200 hover:text-white py-2.5 px-3 rounded hover:bg-white/5 transition'} to={path}>
-                  {x === 'Live' ? <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse inline-block"/>Live Broadcast</span> : x}
-                </Link>;
+            {/* Mobile Drawer Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <img src="/images/anointing-logo.jpg" alt="Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-contain" />
+                <div>
+                  <b className="text-sm font-serif tracking-wider text-amber-300 block leading-tight">ANOINTING MINISTRIES</b>
+                  <span className="text-[9px] tracking-widest text-neutral-400">OFFICIAL ANDROID & WEB APP</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMenu(false)}
+                className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300 transition"
+                aria-label="Close menu"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Member Profile Quick Card */}
+            <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent p-3 rounded-lg border border-amber-500/20 flex items-center justify-between">
+              {currentUser ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs border border-amber-400/40">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white leading-tight">Hello, {currentUser.name}</p>
+                    <p className="text-[10px] text-amber-300/80">Member Passcode: {currentUser.dob}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-white/10 text-neutral-300 flex items-center justify-center">
+                    <User size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white leading-tight">Member Portal</p>
+                    <p className="text-[10px] text-neutral-400">Sign in for personalized prayer & alerts</p>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => { setMenu(false); setLoginModal(true); }}
+                className="px-2.5 py-1 text-[11px] font-medium bg-amber-400 text-slate-900 rounded hover:bg-amber-300 transition shrink-0"
+              >
+                {currentUser ? 'Profile' : 'Sign In'}
+              </button>
+            </div>
+
+            {/* Navigation Grid of links with icons */}
+            <div className="grid grid-cols-2 gap-2 py-1">
+              {[
+                { name: 'Home', path: '/', icon: HomeIcon },
+                { name: 'Live Service', path: '/live', icon: Radio, isLive: liveInfo?.isLive },
+                { name: 'Worship Hymns', path: '/worship', icon: Music2 },
+                { name: 'Pastor Songs', path: '/worship#pastor-songs', icon: Music2 },
+                { name: 'Sermons', path: '/sermons', icon: Play },
+                { name: 'Announcements', path: '/announcements', icon: Bell },
+                { name: 'Holy Bible', path: '/bible', icon: BookOpen },
+                { name: 'Prayer Request', path: '/prayer', icon: Heart },
+                { name: 'About Church', path: '/about', icon: Cross },
+                { name: 'Contact & Map', path: '/contact', icon: MapPin },
+                { name: 'Admin Panel', path: '/admin', icon: Shield },
+              ].map(item => {
+                const ItemIcon = item.icon;
+                const active = location.pathname === item.path;
+                return (
+                  <Link 
+                    key={item.name} 
+                    onClick={() => setMenu(false)} 
+                    to={item.path}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-lg text-xs transition ${active ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30' : 'bg-white/[0.04] text-neutral-200 hover:bg-white/[0.08] hover:text-white border border-white/5'}`}
+                  >
+                    <ItemIcon size={16} className={active ? "text-amber-400 shrink-0" : (item.isLive ? "text-red-400 animate-pulse shrink-0" : "text-amber-400/80 shrink-0")} />
+                    <span className="truncate">{item.name}</span>
+                    {item.isLive && (
+                      <span className="ml-auto text-[9px] px-1 py-0.5 rounded bg-red-500/30 text-red-300 font-bold">LIVE</span>
+                    )}
+                  </Link>
+                );
               })}
             </div>
-            <div className="pt-4 mt-2 border-t border-white/10">
-              <p className="text-[10px] tracking-widest text-amber-400 uppercase mb-3 font-semibold">Connect With Us</p>
+
+            {/* Church Notifications Bar */}
+            <button
+              onClick={() => { setMenu(false); setAlertsModal(true); }}
+              className="flex items-center justify-between p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 hover:bg-amber-500/20 transition"
+            >
+              <div className="flex items-center gap-2">
+                <Bell size={15} className="text-amber-400" />
+                <span>Church Alerts & Push Notifications</span>
+              </div>
+              <span className="text-[10px] bg-amber-400/20 px-1.5 py-0.5 rounded font-mono">
+                {alerts.length > 0 ? `${alerts.length} active` : 'Configure'}
+              </span>
+            </button>
+
+            {/* Social Links */}
+            <div className="pt-2 border-t border-white/10">
+              <p className="text-[10px] tracking-widest text-amber-400 uppercase mb-2 font-semibold">Connect With Us</p>
               <SocialLinks />
             </div>
           </motion.nav>
         )}
       </AnimatePresence>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 header-actions">
         <button
           onClick={() => setLoginModal(true)}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition text-current"
+          className="header-login-btn flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition text-current"
           aria-label="Member Login"
           title={currentUser ? `Logged in as ${currentUser.name}` : "Member Login"}
         >
           <User size={15} />
-          {currentUser ? <span className="max-w-[110px] truncate"><b>{currentUser.name}</b></span> : <span>Login</span>}
+          {currentUser ? <span className="max-w-[75px] sm:max-w-[110px] truncate"><b>{currentUser.name}</b></span> : <span>Login</span>}
         </button>
         <button 
           onClick={() => setAlertsModal(true)} 
@@ -332,13 +421,13 @@ function Shell() {
             </span>
           )}
         </button>
-        <Link to="/live" className="nav-join">
+        <Link to="/live" className="nav-join hidden sm:flex">
           <Radio size={14} className={liveInfo?.isLive ? "text-red-400 animate-pulse" : "text-amber-400"}/> 
           {liveInfo?.isLive ? "● LIVE NOW" : "Watch Live"} 
           <ArrowUpRight size={15}/>
         </Link>
+        <IconButton className="mobile-toggle" label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)} aria-expanded={menu}>{menu ? <X /> : <Menu />}</IconButton>
       </div>
-      <IconButton label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)} aria-expanded={menu}>{menu ? <X /> : <Menu />}</IconButton>
     </header>
     <AnimatePresence>
       {alertsModal && (
@@ -366,7 +455,71 @@ function Shell() {
       </Routes>
     </main>
     <Footer />
+    <AndroidBottomNav menu={menu} setMenu={setMenu} liveInfo={liveInfo} />
   </>;
+}
+
+function AndroidBottomNav({ menu, setMenu, liveInfo }: { menu: boolean; setMenu: React.Dispatch<React.SetStateAction<boolean>>; liveInfo: any }) {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const navItems = [
+    { label: 'Home', path: '/', icon: HomeIcon },
+    { label: 'Worship', path: '/worship', icon: Music2 },
+    { label: 'Live', path: '/live', icon: Radio, isLive: liveInfo?.isLive },
+    { label: 'Bible', path: '/bible', icon: BookOpen },
+    { label: 'Menu', path: '#menu', icon: Menu, isMenu: true },
+  ];
+
+  return (
+    <nav className="android-bottom-bar" aria-label="Android Mobile Navigation Bar">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = item.isMenu 
+          ? menu 
+          : (item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path));
+
+        if (item.isMenu) {
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => setMenu(prev => !prev)}
+              className={`android-tab ${isActive ? 'active' : ''}`}
+              aria-label={menu ? 'Close Menu' : 'Open All Menu Options'}
+              aria-expanded={menu}
+            >
+              <div className="tab-icon-wrap">
+                <Icon size={20} />
+              </div>
+              <span className="tab-label">{menu ? 'Close' : 'Menu'}</span>
+            </button>
+          );
+        }
+
+        return (
+          <Link
+            key={item.label}
+            to={item.path}
+            onClick={() => setMenu(false)}
+            className={`android-tab ${isActive ? 'active' : ''}`}
+            aria-label={item.label}
+          >
+            <div className="tab-icon-wrap relative">
+              <Icon size={20} />
+              {item.isLive && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                </span>
+              )}
+            </div>
+            <span className="tab-label">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 function PageNotFound() {
