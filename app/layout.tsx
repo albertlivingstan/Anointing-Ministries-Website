@@ -2,7 +2,7 @@ import type {Metadata, Viewport} from 'next';
 import '../src/style.css';
 
 export const viewport: Viewport = {
-  themeColor: '#101827',
+  themeColor: '#fff8ed',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -20,10 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#101827"/>
+        <meta name="theme-color" content="#fff8ed"/>
         <meta name="apple-mobile-web-app-capable" content="yes"/>
         <meta name="mobile-web-app-capable" content="yes"/>
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
       </head>
       <body>{children}</body>
     </html>

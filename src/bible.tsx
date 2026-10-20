@@ -1,6 +1,6 @@
 import {useState,useEffect,useRef} from 'react';
 import {Link} from 'react-router-dom';
-import {BookOpen,Heart,Share2,Copy,ChevronLeft,ChevronRight,Search,Download,MessageCircle,Send,X,Monitor,Trash2} from 'lucide-react';
+import {BookOpen,Heart,Share2,Copy,ChevronLeft,ChevronRight,Search,Download,MessageCircle,Send,X,Monitor,Trash2,CalendarDays} from 'lucide-react';
 import daily from './daily-verses.json';
 
 type Lang = 'ta' | 'en' | 'both';
@@ -99,7 +99,7 @@ export function sendToStudio(text: string) {
 
 function Language({ value, onChange }: { value: Lang; onChange: (x: Lang) => void }) {
   return <div className="language-switch">
-    {[['ta', 'தமிழ்'], ['en', 'English'], ['both', 'Both']].map(([k, t]) => <button key={k} aria-pressed={value === k} className={value === k ? 'selected' : ''} onClick={() => onChange(k as Lang)}>{t}</button>)}
+    {[['en', 'English'], ['ta', 'தமிழ்'], ['both', 'Both']].map(([k, t]) => <button key={k} aria-pressed={value === k} className={value === k ? 'selected' : ''} onClick={() => onChange(k as Lang)}>{t}</button>)}
   </div>;
 }
 
@@ -231,6 +231,7 @@ export function VerseActions({ text, reference, verseKey }: { text: string; refe
           setMsg('Copy is unavailable in this browser');
         }
       }}><Copy size={16}/><span>Copy</span></button>
+      <button onClick={() => setSaved(items => items.includes(verseKey) ? items.filter(key => key !== verseKey) : [...items, verseKey])} aria-pressed={saved.includes(verseKey)}><BookOpen size={17}/><span>{saved.includes(verseKey) ? 'Saved' : 'Save'}</span></button>
       <button disabled={busy} onClick={async () => {
         setBusy(true);
         try {
@@ -292,18 +293,18 @@ export function VerseActions({ text, reference, verseKey }: { text: string; refe
   </>;
 }
 
-export function DailyVerse() {
+export function DailyVerse({variant='default'}:{variant?:'default'|'home'|'feature'}) {
   const [index, setIndex] = useState(todayIndex), [lang, setLang] = useLocal<Lang>('am-bible-language', 'ta');
   const v = daily[index];
   const text = lang === 'both' ? v.ta.text + '\n\n' + v.en.text : v[lang].text;
   const reference = lang === 'both' ? v.ta.reference + ' · ' + v.en.reference : v[lang].reference;
-  return <section className="daily-front">
+  return <section className={'daily-front ref-daily-'+variant}>
     <div className="daily-decoration"/>
     <div className="daily-heading">
       <div>
         <span className="eyebrow">A WORD FOR YOUR DAY</span>
-        <h2>இன்றைய <em>வசனம்.</em></h2>
-        <p>Daily scripture · Anointing Ministries</p>
+        <h2>{lang==='en'?<>Today’s <em>Verse.</em></>:<>இன்றைய <em>வசனம்.</em></>}</h2>
+        <p><CalendarDays size={14}/>{new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',month:'short',day:'numeric',year:'numeric'})}</p>
       </div>
       <Language value={lang} onChange={setLang}/>
     </div>

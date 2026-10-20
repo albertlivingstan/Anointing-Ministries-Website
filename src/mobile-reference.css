@@ -1,0 +1,437 @@
+/* Reference-led ministry design. Scoped to the website; the operator studio keeps its own theme. */
+.reference-shell {
+  --ref-wine: #731a2b;
+  --ref-wine-dark: #50111d;
+  --ref-paper: #fff9f0;
+  --ref-card: #fffcf7;
+  --ref-sand: #f4e6d2;
+  --ref-gold: #b08442;
+  --ref-ink: #352a25;
+  --ref-muted: #786b60;
+  --ref-border: #eadfce;
+  --navy: var(--ref-wine);
+  color: var(--ref-ink);
+  background: var(--ref-paper);
+  min-height: 100svh;
+}
+.reference-shell *, .reference-shell *::before, .reference-shell *::after { box-sizing: border-box; }
+.reference-shell h1, .reference-shell h2, .reference-shell h3 { color: var(--ref-wine-dark); letter-spacing: -.025em; }
+.reference-shell p { color: var(--ref-muted); }
+.reference-shell em { color: var(--ref-gold); }
+.reference-shell .eyebrow, .ref-kicker { color: #997342; font-size: 10px; font-weight: 650; letter-spacing: .15em; }
+.reference-shell a, .reference-shell button, .reference-shell input, .reference-shell select, .reference-shell textarea { touch-action: manipulation; }
+.reference-shell :is(a,button,input,textarea,select,summary):focus-visible { outline: 3px solid #ae7436; outline-offset: 4px; }
+.reference-shell button:disabled { opacity: .55; }
+.reference-shell .btn { border-radius: 10px; min-height: 44px; }
+.reference-shell .btn.navy { background: var(--ref-wine); color: white; }
+.reference-shell .btn.gold { background: var(--ref-sand); color: var(--ref-wine-dark); }
+.reference-shell .text-link { color: var(--ref-wine); }
+.reference-shell .ref-header {
+  position: sticky;
+  top: 0;
+  inset-inline: auto;
+  width: 100%;
+  height: 94px !important;
+  padding: 0 max(4vw, 24px) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: #fff9f0f5;
+  color: var(--ref-wine);
+  border-bottom: 1px solid var(--ref-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 50;
+}
+.ref-header .ministry-brand { position: relative; flex-shrink: 0; gap: 10px; color: var(--ref-wine-dark); }
+.ref-header .ministry-brand img { width: 46px; height: 46px; object-fit: contain; border: 1px solid #d5bb8c; border-radius: 50%; }
+.ref-header .ministry-brand > span { font: 22px/1.05 'Playfair Display', Georgia, serif; letter-spacing: .04em; }
+.ref-header .ministry-brand small { font: 16px/1.3 'Playfair Display', Georgia, serif; letter-spacing: .2em; }
+.ref-header .ref-desktop-nav { display: flex; gap: 24px; color: #6f5b51; font-size: 12px; }
+.ref-header .ref-desktop-nav a[aria-current=page] { color: var(--ref-wine); font-weight: 700; }
+.ref-header-actions { display: flex; align-items: center; gap: 16px; }
+.ref-header-profile { display: flex; align-items: center; gap: 6px; font-size: 11px; min-height: 44px; }
+.ref-header-live, .ref-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 20px; min-height: 44px; border: 1px solid transparent; border-radius: 12px; background: linear-gradient(120deg, #7b1b2c, #641320); color: #fffaf3; font-size: 12px; font-weight: 600; text-decoration: none; transition: background .2s, transform .2s, box-shadow .2s; }
+.ref-primary:hover, .ref-header-live:hover { background: var(--ref-wine-dark); box-shadow: 0 5px 15px #731a2b18; }
+.ref-primary:active { transform: scale(.98); }
+.ref-menu-toggle { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; }
+.ref-bell { position: relative; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+.ref-bell > span { position: absolute; width: 8px; height: 8px; background: #d33938; border: 2px solid #fff9f0; border-radius: 50%; top: 9px; right: 9px; }
+.ref-alert { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 7px 16px; background: var(--ref-wine); color: #fffaf3; }
+.ref-alert p { flex: 1; max-width: 1000px; color: inherit; font-size: 12px; line-height: 1.6; }
+.ref-alert button { min-height: 34px; min-width: 34px; }
+.ref-drawer-layer { position: fixed; inset: 0; z-index: 90; }
+.ref-drawer-backdrop { position: absolute; inset: 0; background: #2b19136b; backdrop-filter: blur(4px); }
+.ref-drawer { position: relative; display: flex; flex-direction: column; gap: 12px; width: min(350px, calc(100% - 28px)); height: 100dvh; padding: max(26px, env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom)); overflow-y: auto; background: var(--ref-paper); box-shadow: 20px 0 70px #27181329; }
+.ref-drawer-heading, .ref-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.ref-drawer-heading h2 { font-size: 28px; }
+.ref-drawer-heading button, .ref-dialog-heading button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
+.ref-drawer > p { font-size: 12px; margin: 0 0 12px; }
+.ref-drawer nav { display: flex; flex-direction: column; gap: 2px; }
+.ref-drawer nav a { min-height: 46px; padding: 11px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: #6b5146; }
+.ref-drawer nav a[aria-current=page] { background: var(--ref-sand); color: var(--ref-wine); font-weight: 650; }
+.ref-drawer nav a::after { display: none; }
+.ref-drawer .social-links { margin-top: 18px; border-top: 1px solid var(--ref-border); padding-top: 18px; }
+.reference-shell .ref-bottom-nav { display: none; }
+.reference-shell #main { min-width: 0; padding-bottom: 0 !important; }
+.reference-shell .section { max-width: 1440px; margin-inline: auto; padding: 64px 6%; }
+.reference-shell .section-heading h2 { font-size: clamp(30px, 3.2vw, 44px); }
+.reference-shell .page-title { padding-top: 55px; padding-bottom: 40px; }
+.reference-shell .page-title h1 { font-size: clamp(38px, 5vw, 66px); }
+.reference-shell .page-title p { font-size: 14px; }
+.reference-shell .hero.ref-hero { height: 580px; min-height: 0; background: #34291d; }
+.ref-hero .hero-shade { background: linear-gradient(90deg, #1a120dde, #1a120d80 55%, #1a120d30), linear-gradient(0deg, #1a120d70, transparent 70%); }
+.ref-hero .hero-copy { padding: 90px 8% 100px; max-width: 1100px; }
+.ref-hero h1 { font-size: clamp(48px, 6.8vw, 88px); line-height: 1.04; color: #fffaf2; letter-spacing: -.03em; margin: 25px 0 22px; }
+.ref-hero .hero-copy p { color: #f6eee3; font-size: 17px; line-height: 1.65; }
+.ref-hero .hero-copy > .eyebrow { color: #edcea0; font-size: 9px; }
+.ref-hero .hero-bottom { display: none; }
+.ref-hero .hero-watch { color: #fff9ef; }
+.ref-hero .hero-copy .actions { flex-wrap: wrap; gap: 20px; }
+.ref-hero-cta { border: 1px solid #ead3ae; border-radius: 32px; background: #761b2be8; color: #fffaf0; display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 52px; padding: 10px 20px 10px 12px; font-family: 'Playfair Display', Georgia, serif; font-size: 19px; box-shadow: 0 8px 24px #1a120d40; }
+.ref-hero-cta > span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--ref-wine); background: #fff8ed; }
+.ref-home-hub { position: relative; z-index: 2; display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px 30px; max-width: 1160px; padding: 30px; margin: -48px auto 0; background: var(--ref-paper); border: 1px solid #efe2d0; border-radius: 30px; box-shadow: 0 12px 45px #66462208; }
+.ref-home-hub > .daily-front { grid-row: span 2; }
+.ref-home-hub h2 { font-size: 23px; }
+.ref-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
+.ref-section-heading h2 { font-size: 25px; line-height: 1.25; }
+.ref-section-heading > a { color: var(--ref-wine); font-size: 11px; display: flex; align-items: center; gap: 9px; white-space: nowrap; min-height: 34px; }
+.ref-quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.ref-quick-grid > a { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 88px; gap: 9px; border-radius: 15px; color: var(--ref-wine); background: linear-gradient(140deg, #f1dfc5, #f7ebda); border: 1px solid #eddfcd; box-shadow: 0 3px 10px #6a4b2510; transition: transform .2s; }
+.ref-quick-grid > a:first-child { background: linear-gradient(135deg, #821b30, #651321); color: #fff8ee; border-color: #651321; }
+.ref-quick-grid > a:hover { transform: translateY(-3px); }
+.ref-quick-grid span { font-size: 12px; }
+.ref-community-invite { display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; min-height: 125px; border-radius: 15px; padding: 24px; color: #fff8e9; background: #46341e; isolation: isolate; }
+.ref-community-invite::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #21190d60, #281c10c9 50%, #3a2613e6); }
+.ref-community-invite > img { position: absolute; width: 100%; height: 100%; inset: 0; object-fit: cover; z-index: -2; }
+.ref-community-invite > div { margin-left: 22%; }
+.ref-community-invite span { font-size: 8px; letter-spacing: .16em; color: #f3d5a7; }
+.ref-community-invite h2 { color: #fff8ea; font-size: 22px; line-height: 1.3; margin-top: 7px; }
+.ref-community-invite > svg { margin-left: 16px; }
+.reference-shell .daily-front { padding: 26px; color: var(--ref-ink); background: #f6ebd8; border: 1px solid #e9dac0; border-radius: 17px; overflow: visible; }
+.reference-shell .daily-decoration { display: none; }
+.reference-shell .daily-heading { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+.reference-shell .daily-heading > div:first-child { min-width: 0; }
+.reference-shell .daily-heading h2 { color: var(--ref-wine-dark); font-size: 24px; line-height: 1.35; margin: 0; letter-spacing: -.02em; }
+.reference-shell .daily-heading > div > .eyebrow { display: none; }
+.reference-shell .daily-heading p { display: flex; gap: 6px; align-items: center; font-size: 10px; color: #8b7359; letter-spacing: 0; margin-top: 6px; }
+.reference-shell .daily-verse-text { position: relative; z-index: 1; min-height: 0; margin: 22px 0 10px; text-align: center; }
+.reference-shell .daily-verse-text blockquote { font-family: 'Playfair Display', Georgia, serif; font-size: 23px; font-weight: 400; line-height: 1.6; color: #3f2c21; margin: 0 0 14px; }
+.reference-shell .daily-verse-text[lang=ta] blockquote { font-family: 'Noto Sans Tamil', sans-serif; font-size: 18px; line-height: 1.85; }
+.reference-shell .daily-verse-text .secondary-verse { font-size: 18px; color: #776453; }
+.reference-shell .daily-verse-text cite { display: block; color: #7d5b35; font-size: 12px; line-height: 1.6; }
+.reference-shell .verse-actionbar { gap: 5px; padding: 8px 0; justify-content: center; }
+.reference-shell .verse-actionbar button { min-height: 42px; min-width: 42px; padding: 10px; color: var(--ref-wine); border-color: #b6945b35; font-size: 10px; }
+.reference-shell .verse-actionbar button span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.reference-shell .verse-actionbar button:hover, .reference-shell .verse-actionbar button[aria-pressed=true] { background: #b084421c; }
+.reference-shell .daily-bottom { margin-top: 8px; padding-top: 9px; border-color: #b6945b35; color: #896636; font-size: 11px; }
+.reference-shell .daily-bottom > div { gap: 7px; }
+.reference-shell .daily-bottom button { min-height: 38px; min-width: 38px; }
+.reference-shell .language-switch { gap: 3px; background: #f2e5d1; color: var(--ref-wine); border-radius: 30px; padding: 4px; }
+.reference-shell .language-switch button { min-height: 36px; padding: 8px 14px; font-size: 12px; }
+.reference-shell .language-switch button.selected { background: var(--ref-wine); color: #fff8ee; box-shadow: 0 2px 8px #731a2b15; }
+.reference-shell .ref-daily-home { background: linear-gradient(115deg, #f9efdeef, #fbf0dbdd), url('/images/church.jpg') center/cover; padding: 20px 22px 10px; }
+.ref-daily-home .daily-heading { display: none; }
+.ref-daily-home .daily-verse-text { margin-top: 6px; }
+.reference-shell .ref-daily-home .daily-verse-text blockquote { font-size: 22px; line-height: 1.6; }
+.reference-shell .ref-daily-home .daily-verse-text[lang=ta] blockquote { font-size: 17px; line-height: 1.85; }
+.reference-shell .ref-daily-home .daily-bottom > a { display: none; }
+.reference-shell .ref-daily-home .daily-bottom { justify-content: center; }
+.ref-page { max-width: 1140px; margin: 0 auto; padding: 35px 36px 60px; }
+.ref-page > section, .ref-page > .ref-two-column { margin-bottom: 30px; }
+.ref-two-column { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; gap: 30px; }
+.ref-bible-home > .daily-front { margin-bottom: 35px; background: transparent; border: 0; padding: 0; }
+.ref-bible-home .daily-heading { grid-template-columns: 1fr; gap: 22px; margin-bottom: 18px; }
+.ref-bible-home .daily-heading > .language-switch { grid-row: 1; display: flex; width: 100%; border: 1px solid #e8d3b3; }
+.ref-bible-home .daily-heading .language-switch button { flex: 1; font-family: 'Playfair Display', Georgia, serif; font-size: 15px; font-weight: 600; }
+.ref-bible-home .daily-heading > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.ref-bible-home .daily-heading p { margin: 0; white-space: nowrap; }
+.ref-bible-home .daily-verse-text { padding: 32px 35px; margin: 0; min-height: 175px; border: 1px solid #eadbc3; border-radius: 16px; background: linear-gradient(100deg, #fff8eaf0, #f6e5c4dd), url('/images/church.jpg') center/cover; box-shadow: 0 5px 15px #8f68310a; }
+.ref-bible-home .verse-actionbar { margin-top: 8px; }
+.ref-bible-home .daily-bottom { border: 0; }
+.ref-reading-card { display: flex; gap: 19px; padding: 13px; border: 1px solid var(--ref-border); border-radius: 15px; background: var(--ref-card); box-shadow: 0 4px 12px #67482408; align-items: center; }
+.ref-reading-art { display: grid; place-items: center; flex-shrink: 0; align-self: stretch; width: 98px; min-height: 95px; background: linear-gradient(145deg,#6c4b2a,#352a1c); border-radius: 10px; color: #f7deb6; }
+.ref-reading-card > div:nth-child(2) { flex: 1; min-width: 0; }
+.ref-reading-card h3 { font-family: 'Playfair Display',Georgia,serif; font-size: 21px; margin: 7px 0; }
+.ref-reading-card p { font-size: 12px; line-height: 1.65; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ref-reading-card > svg { color: var(--ref-gold); }
+.ref-broadcast-card { display: grid; grid-template-columns: 115px 1fr; gap: 17px; align-items: stretch; }
+.ref-broadcast-card > img { width: 115px; height: 100%; min-height: 150px; border-radius: 12px; object-fit: cover; }
+.ref-broadcast-card h3 { font-family: 'Playfair Display', Georgia,serif; font-size: 21px; line-height: 1.3; margin: 8px 0; }
+.ref-broadcast-card p { font-size: 12px; line-height: 1.6; margin-bottom: 12px; }
+.ref-broadcast-card .ref-primary { width: 100%; padding: 10px 16px; min-height: 42px; }
+.ref-status { display: inline-flex; align-items: center; font-size: 8px; letter-spacing: .08em; background: #f5e2be; color: #76551c; border-radius: 6px; padding: 6px 9px; font-weight: 700; }
+.ref-status.is-live { color: #fff; background: #bb2638; }
+.ref-song-list { display: flex; flex-direction: column; gap: 10px; }
+.ref-song-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 9px; border: 1px solid var(--ref-border); border-radius: 12px; text-align: left; background: var(--ref-card); }
+.ref-song-item > img { width: 58px; height: 58px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.ref-song-copy { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.ref-song-copy > b { font-family: 'Playfair Display',Georgia,serif; font-size: 15px; font-weight: 600; line-height: 1.35; }
+.ref-song-copy > small { color: var(--ref-muted); font-size: 11px; }
+.ref-song-play { width: 33px; height: 33px; display: grid; place-items: center; flex-shrink: 0; background: var(--ref-wine); color: #fff9f0; border-radius: 50%; }
+.ref-home-song-section { max-width: 1160px; margin: 40px auto; padding: 0 30px; }
+.ref-home-song-section .ref-song-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.ref-studio-link { display: flex; align-items: center; gap: 14px; border-radius: 15px; border: 1px solid var(--ref-border); padding: 20px; background: #f4e8d6; color: var(--ref-wine); }
+.ref-studio-link > div { display: grid; gap: 6px; flex: 1; }
+.ref-studio-link b { font-size: 13px; font-weight: 600; }
+.ref-studio-link small { color: var(--ref-muted); font-size: 11px; }
+.ref-video-dialog { width: min(820px,calc(100vw - 30px)); max-height: 90dvh; padding: 20px; border: 1px solid #e6d7be; border-radius: 18px; background: #fff9f0; color: #50111d; }
+.ref-video-dialog::backdrop { background: #2b1913c9; backdrop-filter: blur(7px); }
+.ref-dialog-heading { margin-bottom: 16px; }
+.ref-dialog-heading h2 { font-size: 23px; color: #50111d; }
+.ref-video-dialog iframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; background: #16100d; }
+.ref-video-dialog > a { display: block; font-size: 12px; padding: 16px 0 0; text-decoration: underline; }
+.ref-service-card { position: relative; isolation: isolate; min-height: 325px; padding: 36px; border-radius: 20px; overflow: hidden; background: #342215; color: #fff8ed; }
+.ref-service-card::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg,#24130ddd,#24130d85 70%,#24130d50); }
+.ref-service-card > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.ref-service-card .ref-status { background: #edbf61; color: #3b2b16; }
+.ref-service-copy > h1 { font-family: 'Playfair Display', Georgia, serif; color: #fff8ed; font-size: 46px; line-height: 1.1; margin: 18px 0; }
+.ref-service-copy > p { color: #faf0e3; display: flex; align-items: center; gap: 10px; font-size: 12px; margin: 10px 0; }
+.ref-light-button { display: inline-flex; align-items: center; gap: 15px; padding: 12px 18px; min-height: 44px; border: 1px solid #edce9d; border-radius: 25px; color: #3e2015; background: #f5d8b3; margin-top: 14px; font-size: 12px; }
+.ref-prayer-card { background: linear-gradient(135deg,#f8ecd9,#f7eedf); border: 1px solid #ecdfca; border-radius: 15px; padding: 22px; }
+.ref-prayer-intro { display: flex; align-items: start; gap: 14px; margin-bottom: 18px; }
+.ref-prayer-intro > svg { color: var(--ref-wine); margin-top: 5px; }
+.ref-prayer-intro h3 { font-size: 21px; margin: 0 0 8px; }
+.ref-prayer-intro p { font-size: 12px; line-height: 1.7; }
+.ref-prayer-card > textarea { width: 100%; border: 1px solid #e0d4c3; background: #fffdf8; border-radius: 12px; padding: 13px 15px; font-size: 13px; resize: vertical; min-height: 72px; color: var(--ref-ink); }
+.ref-prayer-card > .ref-primary { width: 100%; margin-top: 12px; }
+.ref-prayer-card > small { display: flex; align-items: center; gap: 5px; font-size: 9px; line-height: 1.65; color: #816d58; margin-top: 12px; }
+.ref-empty-card { border: 1px solid var(--ref-border); background: var(--ref-card); border-radius: 15px; padding: 24px; }
+.ref-empty-card > svg { color: var(--ref-gold); }
+.ref-empty-card h3 { font-size: 22px; margin: 15px 0 10px; }
+.ref-empty-card p { font-size: 13px; line-height: 1.8; }
+.ref-announcement-list { display: flex; flex-direction: column; gap: 10px; }
+.ref-announcement-item { display: flex; align-items: center; gap: 13px; padding: 16px; background: var(--ref-card); border: 1px solid var(--ref-border); border-radius: 13px; }
+.ref-announcement-icon { display: grid; place-items: center; width: 54px; height: 60px; background: var(--ref-sand); border-radius: 9px; color: var(--ref-gold); flex-shrink: 0; }
+.ref-announcement-item > div:nth-child(2) { flex: 1; min-width: 0; }
+.ref-announcement-item h3 { font-family: 'Playfair Display',Georgia,serif; font-size: 17px; margin-bottom: 6px; }
+.ref-announcement-item p { font-size: 12px; line-height: 1.7; }
+.ref-profile-page { max-width: 760px; }
+.ref-profile-page > h1 { font-size: 48px; line-height: 1.1; margin: 18px 0 30px; }
+.ref-profile-card { background: var(--ref-card); border: 1px solid var(--ref-border); padding: 30px; text-align: center; border-radius: 20px; }
+.ref-profile-avatar { width: 76px; height: 76px; border: 1px solid #e4c99c; border-radius: 50%; display: grid; place-items: center; background: var(--ref-sand); color: var(--ref-wine); margin: 0 auto 18px; }
+.ref-profile-card h2 { font-size: 28px; }
+.ref-profile-card p { margin: 14px auto 22px; font-size: 13px; max-width: 360px; }
+.ref-profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 28px; }
+.ref-profile-stats > a { padding: 24px; background: #f5ead8; border: 1px solid var(--ref-border); border-radius: 15px; display: grid; grid-template-columns: 1fr auto; gap: 12px; color: var(--ref-wine); }
+.ref-profile-stats b { font-size: 24px; font-family: Georgia,serif; font-weight: 400; }
+.ref-profile-stats span { grid-column: 1/-1; font-size: 12px; }
+.ref-profile-options { background: var(--ref-card); border: 1px solid var(--ref-border); border-radius: 15px; padding: 0 20px; }
+.ref-profile-options > :is(a,button) { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 85px; padding: 18px 0; text-align: left; border-bottom: 1px solid var(--ref-border); color: var(--ref-wine); }
+.ref-profile-options > :last-child { border-bottom: 0; }
+.ref-profile-options span { flex: 1; display: grid; gap: 6px; }
+.ref-profile-options b { font-size: 13px; font-weight: 600; }
+.ref-profile-options small { font-size: 11px; color: var(--ref-muted); }
+.reference-shell .bible-reader { padding-top: 38px; }
+.reference-shell .bible-title h1 { margin-top: 10px; }
+.reference-shell .bible-title p { font-size: 13px; }
+.reference-shell .bible-controls { align-items: end; }
+.reference-shell .bible-controls select, .reference-shell .bible-search, .reference-shell .form-card { background: var(--ref-card); border-color: var(--ref-border); }
+.reference-shell .bible-verses article.selected-verse { background: #f3e5cf; box-shadow: inset 3px 0 var(--ref-wine); }
+.reference-shell .bible-verses article p { color: var(--ref-ink); }
+.reference-shell .bible-verses .verse-actionbar { justify-content: start; }
+.reference-shell .verse-community { background: #fffcf7; border-color: var(--ref-border); }
+.reference-shell .verse-community p { color: #6b5c51; }
+.reference-shell .live-page { padding-top: 40px; }
+.reference-shell .live-status-card { background: #fbf3e5; border-color: #e4d2b5; color: var(--ref-ink); }
+.reference-shell .worship-home { padding-top: 44px; }
+.reference-shell .welcome { background: var(--ref-paper); border-color: var(--ref-border); }
+.reference-shell .music-feature { border-radius: 18px; background: #f4e8d5; border-color: var(--ref-border); }
+.reference-shell .music-feature h3 { color: var(--ref-wine-dark); }
+.reference-shell .song-card, .reference-shell .sermon-card { border-radius: 15px; border-color: var(--ref-border); overflow: hidden; box-shadow: 0 4px 15px #6b4e2a08; }
+.reference-shell .chips button { min-height: 38px; border-radius: 20px; font-size: 11px; }
+.reference-shell .chips button.selected { background: var(--ref-wine); color: #fff8ee; }
+.reference-shell input, .reference-shell select, .reference-shell textarea { font-size: 16px; max-width: 100%; }
+.reference-shell .prayer-banner { background: #4f1720; }
+.reference-shell .prayer-banner h2, .reference-shell .prayer-banner p { color: #fff6e8; }
+.reference-shell .prayer-banner .eyebrow { color: #e4be83; }
+.reference-shell footer { background: #f1e6d6; color: var(--ref-wine-dark); padding: 45px 6% 30px; border-top: 1px solid #e6d6bf; }
+.reference-shell footer p, .reference-shell footer .footer-bottom, .reference-shell footer .social-links a, .reference-shell footer .footer-top a { color: #775b49; }
+.reference-shell footer .brand { color: var(--ref-wine); }
+.reference-shell .install-app { border-color: #d8c29f66; }
+.reference-shell .install-app p { color: #79644e; }
+.reference-shell .footer-top { border-color: #d8c29f66; gap: 30px; }
+.reference-shell .footer-bottom { border-color: #d8c29f66; }
+@media (max-width: 1120px) {
+  .ref-header .ref-desktop-nav { gap: 16px; }
+  .ref-header-profile { display: none; }
+  .reference-shell .ref-header { padding-inline: 25px !important; gap: 15px; }
+  .ref-home-hub { margin-inline: 24px; }
+}
+@media (min-width: 821px) {
+  .reference-shell .ref-menu-toggle { display: grid; }
+  .ref-header .ministry-brand { margin-right: auto; }
+  .ref-header .ref-desktop-nav { margin-inline: auto; }
+}
+@media (max-width: 820px) {
+  .reference-shell { padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px)); }
+  .reference-shell .ref-header { height: 86px !important; padding: 0 14px !important; gap: 8px; }
+  .ref-header .ref-desktop-nav, .ref-header .ref-header-live, .ref-header-profile { display: none; }
+  .ref-header .ref-menu-toggle { display: grid !important; flex-shrink: 0; }
+  .ref-header .ministry-brand { margin: 0 auto; gap: 8px; }
+  .ref-header .ministry-brand img { width: 38px; height: 38px; }
+  .ref-header .ministry-brand > span { font-size: 18px; }
+  .ref-header .ministry-brand small { font-size: 13px; letter-spacing: .19em; }
+  .ref-header .ministry-brand::after { content: 'BIBLE · WORSHIP · COMMUNITY'; position: absolute; bottom: -13px; left: 0; right: 0; text-align: center; font-size: 6px; letter-spacing: .19em; color: #775b49; font-family: 'DM Sans',sans-serif; }
+  .ref-header .ref-header-actions { gap: 0; }
+  .reference-shell .ref-bottom-nav { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); position: fixed; bottom: 0; inset-inline: 0; height: calc(72px + env(safe-area-inset-bottom,0px)); padding: 7px 10px calc(8px + env(safe-area-inset-bottom,0px)); background: #fffaf2f5; border: 1px solid #eadcc8; border-bottom: 0; border-radius: 23px 23px 0 0; box-shadow: 0 -8px 30px #78542a0c; z-index: 60; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .ref-bottom-nav a { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; min-height: 48px; color: #756b62; padding: 3px 0; }
+  .ref-bottom-nav a::after { display: none; }
+  .ref-bottom-nav a > span { display: grid; place-items: center; width: 38px; height: 28px; border-radius: 15px; }
+  .ref-bottom-nav small { font-size: 10px; letter-spacing: 0; line-height: 1.2; }
+  .ref-bottom-nav a.active { color: var(--ref-wine); }
+  .ref-bottom-nav a.active > span { background: #731a2b0a; }
+  .ref-bottom-nav a.active small { font-weight: 650; }
+  .reference-shell .ref-hero { height: 390px; }
+  .ref-hero .hero-copy { padding: 54px 26px 55px; }
+  .ref-hero h1 { font-size: 51px; margin: 17px 0 20px; }
+  .ref-hero .hero-copy > .eyebrow { font-size: 7px; letter-spacing: .17em; }
+  .ref-hero .hero-copy p { font-size: 14px; max-width: 270px; }
+  .ref-hero .hero-copy .actions { margin-top: 24px; }
+  .ref-hero .hero-watch { display: none; }
+  .ref-hero-cta { min-height: 48px; font-size: 18px; padding-block: 8px; gap: 12px; }
+  .ref-hero-cta > span { width: 29px; height: 29px; }
+  .ref-home-hub { display: flex; flex-direction: column; gap: 23px; border-radius: 28px 28px 0 0; padding: 20px 19px 12px; margin: -27px 0 0; border: 0; box-shadow: none; }
+  .ref-section-heading { margin-bottom: 12px; gap: 10px; }
+  .ref-section-heading h2 { font-size: 23px; }
+  .ref-section-heading > a { font-size: 10px; }
+  .ref-quick-grid { gap: 10px; }
+  .ref-quick-grid > a { min-height: 81px; border-radius: 12px; gap: 8px; }
+  .ref-quick-grid span { font-size: 11px; }
+  .ref-community-invite { min-height: 110px; padding: 20px; border-radius: 13px; }
+  .ref-community-invite h2 { font-size: 20px; }
+  .ref-community-invite span { font-size: 7px; }
+  .reference-shell .ref-daily-home { padding: 18px 14px 8px; border-radius: 14px; }
+  .reference-shell .ref-daily-home .daily-verse-text blockquote { font-size: 20px; }
+  .reference-shell .ref-daily-home .daily-verse-text[lang=ta] blockquote { font-size: 16px; line-height: 1.85; }
+  .reference-shell .daily-bottom { margin-top: 4px; font-size: 10px; }
+  .reference-shell .daily-verse-text cite { font-size: 11px; }
+  .reference-shell .verse-actionbar { gap: 5px; padding-top: 3px; }
+  .reference-shell .verse-actionbar button { width: 40px; min-height: 40px; min-width: 40px; border: 0; padding: 9px; }
+  .ref-page { padding: 25px 19px 35px; }
+  .ref-page > section, .ref-page > .ref-two-column { margin-bottom: 25px; }
+  .ref-page > .ref-two-column { display: flex; flex-direction: column; gap: 25px; }
+  .ref-two-column > section { width: 100%; }
+  .ref-bible-home .daily-heading { gap: 20px; margin-bottom: 16px; }
+  .ref-bible-home .daily-heading h2 { font-size: 23px; }
+  .ref-bible-home .daily-heading p { font-size: 9px; gap: 5px; }
+  .ref-bible-home .daily-heading p svg { width: 12px; }
+  .ref-bible-home .daily-verse-text { padding: 24px 20px; min-height: 165px; border-radius: 13px; }
+  .ref-bible-home .daily-verse-text[lang=ta] blockquote { font-size: 16px; }
+  .ref-bible-home .daily-verse-text blockquote { font-size: 20px; line-height: 1.65; }
+  .ref-bible-home .daily-front { padding: 0; }
+  .ref-bible-home .daily-bottom { margin-bottom: 0; padding-top: 0; }
+  .ref-reading-card { gap: 12px; padding: 10px; border-radius: 13px; }
+  .ref-reading-art { width: 76px; min-height: 90px; }
+  .ref-reading-card h3 { font-size: 18px; margin-top: 6px; }
+  .ref-reading-card .ref-kicker { font-size: 6px; letter-spacing: .12em; }
+  .ref-reading-card p { font-size: 11px; }
+  .ref-broadcast-card { grid-template-columns: 100px 1fr; gap: 14px; }
+  .ref-broadcast-card > img { width: 100px; min-height: 140px; }
+  .ref-broadcast-card h3 { font-size: 19px; }
+  .ref-broadcast-card p { font-size: 11px; }
+  .ref-broadcast-card .ref-primary { font-size: 11px; min-height: 42px; }
+  .ref-song-list { gap: 9px; }
+  .ref-song-item { padding: 8px; gap: 12px; }
+  .ref-song-item > img { width: 52px; height: 52px; }
+  .ref-song-copy > b { font-size: 14px; }
+  .ref-song-copy > small { font-size: 10px; }
+  .ref-song-play { width: 31px; height: 31px; }
+  .ref-studio-link { padding: 17px 15px; }
+  .ref-studio-link b { font-size: 12px; }
+  .ref-studio-link small { font-size: 10px; line-height: 1.6; }
+  .reference-shell .section { padding: 35px 20px; }
+  .reference-shell .section-heading { align-items: start; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; }
+  .reference-shell .section-heading h2 { font-size: 30px; }
+  .reference-shell .page-title { padding-top: 30px; padding-bottom: 25px; }
+  .reference-shell .page-title h1 { font-size: 39px; letter-spacing: -.03em; }
+  .reference-shell .page-title p { font-size: 13px; }
+  .reference-shell .welcome { gap: 25px; padding-top: 40px; }
+  .reference-shell .welcome h2 { font-size: 31px; }
+  .reference-shell .welcome p { font-size: 13px; }
+  .ref-home-song-section { padding: 0 20px; margin: 30px 0; }
+  .ref-home-song-section .ref-song-list { display: flex; }
+  .ref-community-home { padding-top: 20px; }
+  .ref-service-card { min-height: 285px; padding: 25px 22px; border-radius: 16px; }
+  .ref-service-copy > h1 { font-size: 36px; margin-block: 15px; }
+  .ref-service-copy > p { font-size: 11px; margin-block: 11px; }
+  .ref-service-copy .ref-status { font-size: 8px; }
+  .ref-light-button { padding: 10px 15px; min-height: 42px; margin-top: 10px; font-size: 11px; }
+  .ref-prayer-card { padding: 17px 15px; border-radius: 13px; }
+  .ref-prayer-intro { gap: 12px; margin-bottom: 15px; }
+  .ref-prayer-intro > svg { width: 28px; }
+  .ref-prayer-intro h3 { font-size: 19px; }
+  .ref-prayer-intro p { font-size: 11px; }
+  .ref-prayer-card > textarea { font-size: 16px; }
+  .ref-prayer-card > small { font-size: 9px; }
+  .ref-empty-card { padding: 22px; }
+  .ref-empty-card h3 { font-size: 20px; }
+  .ref-empty-card p { font-size: 12px; }
+  .ref-profile-page > h1 { font-size: 40px; }
+  .ref-profile-card { padding: 27px 20px; }
+  .ref-profile-card h2 { font-size: 25px; }
+  .ref-profile-options { padding: 0 16px; }
+  .ref-profile-options small { font-size: 10px; }
+  .reference-shell .bible-reader { padding-top: 26px; }
+  .reference-shell .bible-title h1 { font-size: 35px; }
+  .reference-shell .bible-title p { font-size: 11px; }
+  .reference-shell .bible-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 10px; margin-top: 25px; }
+  .reference-shell .bible-controls > .language-switch { grid-column: 1/-1; width: 100%; }
+  .reference-shell .bible-controls .language-switch button { flex: 1; }
+  .reference-shell .bible-controls > button { grid-column: 1/-1; }
+  .reference-shell .bible-controls label { min-width: 0; }
+  .reference-shell .bible-controls select { width: 100%; min-height: 44px; }
+  .reference-shell .bible-search { flex-wrap: wrap; border-radius: 12px; gap: 6px; padding: 9px; }
+  .reference-shell .bible-search input { min-width: 0; padding-inline: 4px; }
+  .reference-shell .bible-search .btn { min-height: 44px; padding: 10px 16px; }
+  .reference-shell .bible-verses article { padding: 15px 10px; }
+  .reference-shell .bible-verses p { font-size: 16px; line-height: 1.95; }
+  .reference-shell .chapter-heading { margin-block: 23px; }
+  .reference-shell .chapter-heading h2 { font-size: 24px; }
+  .reference-shell .form-card { padding: 24px 19px; border-radius: 16px; }
+  .reference-shell .form-row { grid-template-columns: 1fr; }
+  .reference-shell .form input, .reference-shell .form textarea, .reference-shell .form select { border-radius: 10px; font-size: 16px; }
+  .reference-shell .form label { font-size: 12px; }
+  .reference-shell .form .checkbox input { flex-shrink: 0; }
+  .reference-shell footer { margin-top: 20px; padding: 32px 20px 25px !important; }
+  .reference-shell .footer-top { display: grid; grid-template-columns: 1fr 1fr; gap: 25px 20px; }
+  .reference-shell .footer-top > .brand { grid-column: 1/-1; }
+  .reference-shell .footer-top > p { display: none; }
+  .reference-shell .footer-top a { font-size: 11px; }
+  .reference-shell .install-app { gap: 16px; padding-bottom: 25px; margin-bottom: 30px; }
+  .reference-shell .install-app h3 { font-size: 25px; }
+  .reference-shell .install-app p { font-size: 11px; }
+  .reference-shell .install-app .eyebrow { font-size: 7px; }
+  .reference-shell .install-app .actions { flex-wrap: wrap; }
+  .reference-shell .footer-bottom { gap: 14px; font-size: 9px; }
+  .player { bottom: calc(72px + env(safe-area-inset-bottom,0px)) !important; border-radius: 15px 15px 0 0; }
+  .toast { bottom: calc(88px + env(safe-area-inset-bottom,0px)) !important; max-width: calc(100vw - 28px); }
+  .motion-toggle, .back-top { bottom: calc(85px + env(safe-area-inset-bottom,0px)) !important; }
+  .modal-shade { padding: 18px; }
+  .modal-shade > .modal { max-height: 86dvh; overflow-y: auto; margin-top: 0; border-radius: 18px; }
+}
+@media(max-width:360px) {
+  .ref-header .ministry-brand > span { font-size: 15px; }
+  .ref-header .ministry-brand small { font-size: 11px; }
+  .ref-header .ministry-brand img { width: 33px; height: 33px; }
+  .ref-hero h1 { font-size: 45px; }
+  .ref-hero .hero-copy { padding-left: 22px; padding-right: 22px; }
+  .ref-page { padding-inline: 15px; }
+  .ref-quick-grid { gap: 8px; }
+  .ref-reading-art { width: 61px; }
+  .ref-broadcast-card { grid-template-columns: 84px 1fr; gap: 12px; }
+  .ref-broadcast-card > img { width: 84px; }
+  .ref-community-invite h2 { font-size: 18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .reference-shell *, .reference-shell *::before, .reference-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+/* Keep the phone hero compact; match the specificity of its desktop rule. */
+@media(max-width:820px) {
+  .reference-shell .hero.ref-hero { height: 365px; }
+  .ref-hero .hero-copy { padding-top: 39px; }
+}
+@media(min-width:821px) and (max-width:1120px) {
+  .ref-header-live { display: none; }
+}
