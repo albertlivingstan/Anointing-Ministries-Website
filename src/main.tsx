@@ -1,3 +1,4 @@
+import {QuickAccess,CommunityInvite,WorshipPreview,BibleLanding,CommunityOverview,MemberProfile} from './components/reference-ui';
 import {DailyVerse,BibleReader} from './bible';
 import {PastorSongs} from './songs';
 import {AppInstall,LiveStatus,LivePage,ChurchGallery} from './live-app';
@@ -5,8 +6,9 @@ import {ProStudio,ProAudience} from './presentation';
 import React, { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio, User, Home as HomeIcon } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Play, Pause, Heart, Search, Menu, X, ChevronLeft, ChevronRight, Copy, Share2, Maximize, Monitor, Plus, Music2, Volume2, SkipForward, SkipBack, Check, CalendarDays, Clock, MapPin, BookOpen, Download, Trash2, Settings, ExternalLink, Mail, Cross, Shield, MessageCircle, Send, Bell, MoreHorizontal, Bookmark, AlertCircle, Radio, User, Users, Home as HomeIcon } from 'lucide-react';
 import './style.css';
+import './mobile-reference.css';
 import { initialSongs, verses, sermons, type Song } from './content';
 import { config } from './config';
 import {Brand,SocialLinks,MinistryArchive,CommunityConnect,MotionEnhancements,LightAtmosphere} from './ministry';
@@ -230,296 +232,74 @@ export function App() {
 }
 
 function Shell() {
-  const [menu, setMenu] = useState(false), [scrolled, setScrolled] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [loginModal, setLoginModal] = useState(false);
   const location = useLocation();
-  const home = location.pathname === '/';
   const { alerts, alertDismissed, setAlertDismissed, liveInfo, alertsModal, setAlertsModal } = useApp();
-
+  const { currentUser, logout } = useMemberAuth();
+  const menuRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const links = [
+    ['Home','/'], ['Bible','/bible'], ['Worship','/worship'], ['Live worship','/live'],
+    ['Community','/community'], ['Announcements','/announcements'], ['Prayer','/prayer'],
+    ['Sermons','/sermons'], ['About','/about'], ['Contact','/contact'], ['Profile','/profile'],
+    ['Presentation studio','/worship/presentation'], ['Admin portal','/admin']
+  ];
   useEffect(() => {
     setMenu(false);
-    if (location.hash) {
-      requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView());
-    } else window.scrollTo(0, 0);
+    if (location.hash) requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView());
+    else window.scrollTo(0, 0);
   }, [location.pathname, location.hash]);
-
   useEffect(() => {
-    const f = () => setScrolled(window.scrollY > 30);
-    window.addEventListener('scroll', f);
-    return () => window.removeEventListener('scroll', f);
-  }, []);
-
-  const hasActiveAlert = alerts.length > 0 && !alertDismissed;
-
-  const [loginModal, setLoginModal] = useState(false);
-  const { currentUser } = useMemberAuth();
-
-  return <>
+    if (!menu) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    menuRef.current?.querySelector<HTMLElement>('button,a')?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setMenu(false); }
+      if (e.key === 'Tab') {
+        const focusable = menuRef.current?.querySelectorAll<HTMLElement>('button,a[href]');
+        if (!focusable?.length) return;
+        const first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', key);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', key); previous?.focus(); };
+  }, [menu]);
+  return <div className="reference-shell">
     <a className="skip" href="#main">Skip to content</a>
-    {hasActiveAlert && (
-      <div className="bg-amber-600 text-white px-4 py-2 text-xs flex items-center justify-between gap-3 fixed top-0 left-0 right-0 z-50 shadow-md">
-        <div className="flex items-center gap-2 max-w-4xl mx-auto flex-1 justify-center">
-          <span className="flex h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
-          <AlertCircle size={15} className="shrink-0"/>
-          <span><b>Important Alert:</b> {alerts[0].message}</span>
-        </div>
-        <button 
-          onClick={() => setAlertDismissed(true)} 
-          className="p-1 hover:bg-black/20 rounded transition text-white shrink-0"
-          aria-label="Dismiss alert"
-          title="Dismiss alert"
-        >
-          <X size={15}/>
-        </button>
-      </div>
-    )}
-    <header className={(home ? 'on-hero ' : 'solid ') + (scrolled ? 'scrolled' : '')} style={hasActiveAlert ? {marginTop:'36px'} : {}}>
+    {alerts.length > 0 && !alertDismissed && <div className="ref-alert" role="status"><AlertCircle size={16}/><p>{alerts[0].message}</p><button onClick={() => setAlertDismissed(true)} aria-label="Dismiss church alert"><X size={18}/></button></div>}
+    <header className="ref-header">
+      <button className="ref-menu-toggle" ref={toggleRef} onClick={() => setMenu(true)} aria-expanded={menu} aria-controls="ministry-menu" aria-label="Open ministry menu"><Menu size={23}/></button>
       <Brand/>
-      <nav className="desktop-nav" aria-label="Main navigation">
-        {['Home', 'Live', 'Worship', 'Sermons', 'Announcements', 'Bible', 'Prayer', 'About', 'Contact'].map(x => {
-          const path = x === 'Home' ? '/' : '/' + x.toLowerCase();
-          return <Link key={x} className={location.pathname === path ? 'active' : ''} to={path}>
-            {x === 'Live' ? <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse inline-block"/>Live</span> : x}
-          </Link>;
-        })}
-      </nav>
-      <AnimatePresence>
-        {menu && (
-          <motion.nav 
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="mobile-glass-nav" 
-            aria-label="Mobile navigation"
-          >
-            {/* Mobile Drawer Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2.5">
-                <img src="/images/anointing-logo.jpg" alt="Logo" className="w-8 h-8 rounded-full bg-white p-0.5 object-contain" />
-                <div>
-                  <b className="text-sm font-serif tracking-wider text-amber-300 block leading-tight">ANOINTING MINISTRIES</b>
-                  <span className="text-[9px] tracking-widest text-neutral-400">OFFICIAL ANDROID & WEB APP</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setMenu(false)}
-                className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300 transition"
-                aria-label="Close menu"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Member Profile Quick Card */}
-            <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent p-3 rounded-lg border border-amber-500/20 flex items-center justify-between">
-              {currentUser ? (
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs border border-amber-400/40">
-                    {currentUser.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-white leading-tight">Hello, {currentUser.name}</p>
-                    <p className="text-[10px] text-amber-300/80">Member Passcode: {currentUser.dob}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/10 text-neutral-300 flex items-center justify-center">
-                    <User size={16} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-white leading-tight">Member Portal</p>
-                    <p className="text-[10px] text-neutral-400">Sign in for personalized prayer & alerts</p>
-                  </div>
-                </div>
-              )}
-              <button
-                onClick={() => { setMenu(false); setLoginModal(true); }}
-                className="px-2.5 py-1 text-[11px] font-medium bg-amber-400 text-slate-900 rounded hover:bg-amber-300 transition shrink-0"
-              >
-                {currentUser ? 'Profile' : 'Sign In'}
-              </button>
-            </div>
-
-            {/* Navigation Grid of links with icons */}
-            <div className="grid grid-cols-2 gap-2 py-1">
-              {[
-                { name: 'Home', path: '/', icon: HomeIcon },
-                { name: 'Live Service', path: '/live', icon: Radio, isLive: liveInfo?.isLive },
-                { name: 'Worship Hymns', path: '/worship', icon: Music2 },
-                { name: 'Pastor Songs', path: '/worship#pastor-songs', icon: Music2 },
-                { name: 'Sermons', path: '/sermons', icon: Play },
-                { name: 'Announcements', path: '/announcements', icon: Bell },
-                { name: 'Holy Bible', path: '/bible', icon: BookOpen },
-                { name: 'Prayer Request', path: '/prayer', icon: Heart },
-                { name: 'About Church', path: '/about', icon: Cross },
-                { name: 'Contact & Map', path: '/contact', icon: MapPin },
-                { name: 'Admin Panel', path: '/admin', icon: Shield },
-              ].map(item => {
-                const ItemIcon = item.icon;
-                const active = location.pathname === item.path;
-                return (
-                  <Link 
-                    key={item.name} 
-                    onClick={() => setMenu(false)} 
-                    to={item.path}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-lg text-xs transition ${active ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30' : 'bg-white/[0.04] text-neutral-200 hover:bg-white/[0.08] hover:text-white border border-white/5'}`}
-                  >
-                    <ItemIcon size={16} className={active ? "text-amber-400 shrink-0" : (item.isLive ? "text-red-400 animate-pulse shrink-0" : "text-amber-400/80 shrink-0")} />
-                    <span className="truncate">{item.name}</span>
-                    {item.isLive && (
-                      <span className="ml-auto text-[9px] px-1 py-0.5 rounded bg-red-500/30 text-red-300 font-bold">LIVE</span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Church Notifications Bar */}
-            <button
-              onClick={() => { setMenu(false); setAlertsModal(true); }}
-              className="flex items-center justify-between p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 hover:bg-amber-500/20 transition"
-            >
-              <div className="flex items-center gap-2">
-                <Bell size={15} className="text-amber-400" />
-                <span>Church Alerts & Push Notifications</span>
-              </div>
-              <span className="text-[10px] bg-amber-400/20 px-1.5 py-0.5 rounded font-mono">
-                {alerts.length > 0 ? `${alerts.length} active` : 'Configure'}
-              </span>
-            </button>
-
-            {/* Social Links */}
-            <div className="pt-2 border-t border-white/10">
-              <p className="text-[10px] tracking-widest text-amber-400 uppercase mb-2 font-semibold">Connect With Us</p>
-              <SocialLinks />
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-      <div className="flex items-center gap-2 header-actions">
-        <button
-          onClick={() => setLoginModal(true)}
-          className="header-login-btn flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition text-current"
-          aria-label="Member Login"
-          title={currentUser ? `Logged in as ${currentUser.name}` : "Member Login"}
-        >
-          <User size={15} />
-          {currentUser ? <span className="max-w-[75px] sm:max-w-[110px] truncate"><b>{currentUser.name}</b></span> : <span>Login</span>}
-        </button>
-        <button 
-          onClick={() => setAlertsModal(true)} 
-          className="icon-btn relative" 
-          aria-label="View church announcements and alerts"
-          title="Church Notifications & Alerts"
-        >
-          <Bell size={18} />
-          {(alerts.length > 0 || liveInfo?.isLive) && (
-            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-          )}
-        </button>
-        <Link to="/live" className="nav-join hidden sm:flex">
-          <Radio size={14} className={liveInfo?.isLive ? "text-red-400 animate-pulse" : "text-amber-400"}/> 
-          {liveInfo?.isLive ? "● LIVE NOW" : "Watch Live"} 
-          <ArrowUpRight size={15}/>
-        </Link>
-        <IconButton className="mobile-toggle" label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)} aria-expanded={menu}>{menu ? <X /> : <Menu />}</IconButton>
-      </div>
+      <nav className="ref-desktop-nav" aria-label="Main navigation">{[['Home','/'],['Bible','/bible'],['Worship','/worship'],['Community','/community'],['About','/about']].map(([label,to]) => <Link key={to} to={to} aria-current={location.pathname === to ? 'page' : undefined}>{label}</Link>)}</nav>
+      <div className="ref-header-actions"><Link className="ref-header-profile" to="/profile"><User size={17}/>{currentUser ? 'My profile' : 'Member sign in'}</Link><Link className="ref-header-live" to="/live"><Play size={13} fill="currentColor"/>Watch worship</Link><button className="ref-bell" onClick={() => setAlertsModal(true)} aria-label="Open notifications"><Bell size={24}/>{(alerts.length > 0 || liveInfo?.isLive) && <span/>}</button></div>
     </header>
-    <AnimatePresence>
-      {alertsModal && (
-        <NotificationBellWithModal isOpen={alertsModal} onClose={() => setAlertsModal(false)} />
-      )}
-      {loginModal && (
-        <MemberLoginModal isOpen={loginModal} onClose={() => setLoginModal(false)} />
-      )}
-    </AnimatePresence>
+    <AnimatePresence>{menu && <div className="ref-drawer-layer"><button className="ref-drawer-backdrop" onClick={() => setMenu(false)} aria-label="Close ministry menu backdrop" tabIndex={-1}/><motion.aside className="ref-drawer" id="ministry-menu" role="dialog" aria-modal="true" aria-labelledby="ministry-menu-title" ref={menuRef} initial={{x:'-100%'}} animate={{x:0}} exit={{x:'-100%'}} transition={{duration:.24}}><div className="ref-drawer-heading"><h2 id="ministry-menu-title">Welcome home.</h2><button onClick={() => setMenu(false)} aria-label="Close ministry menu"><X size={22}/></button></div><p>A place to belong. A faith to live.</p><nav aria-label="All ministry pages">{links.map(([label,to]) => <Link to={to} key={to} onClick={() => setMenu(false)} aria-current={location.pathname === to ? 'page' : undefined}>{label}<ChevronRight size={16}/></Link>)}</nav><SocialLinks/></motion.aside></div>}</AnimatePresence>
+    {alertsModal && <NotificationBellWithModal isOpen onClose={() => setAlertsModal(false)}/>}
+    {loginModal && <MemberLoginModal isOpen onClose={() => setLoginModal(false)}/>}
     <MotionEnhancements/>
-    <main id="main">
-      <Routes>
-        <Route path="/" element={<Home />}/>
-        <Route path="/worship" element={<Worship />}/>
-        <Route path="/sermons" element={<Sermons />}/>
-        <Route path="/sermons/:id" element={<SermonDetail />}/>
-        <Route path="/announcements" element={<Announcements />}/>
-        <Route path="/admin" element={<Admin />}/>
-        <Route path="/bible" element={<BibleReader/>}/>
-        <Route path="/live" element={<LivePage/>}/>
-        <Route path="/about" element={<About />}/>
-        <Route path="/prayer" element={<Prayer />}/>
-        <Route path="/contact" element={<Contact />}/>
-        <Route path="*" element={<PageNotFound />}/>
-      </Routes>
-    </main>
-    <Footer />
-    <AndroidBottomNav menu={menu} setMenu={setMenu} liveInfo={liveInfo} />
-  </>;
-}
-
-function AndroidBottomNav({ menu, setMenu, liveInfo }: { menu: boolean; setMenu: React.Dispatch<React.SetStateAction<boolean>>; liveInfo: any }) {
-  const location = useLocation();
-  const currentPath = location.pathname;
-
-  const navItems = [
-    { label: 'Home', path: '/', icon: HomeIcon },
-    { label: 'Worship', path: '/worship', icon: Music2 },
-    { label: 'Live', path: '/live', icon: Radio, isLive: liveInfo?.isLive },
-    { label: 'Bible', path: '/bible', icon: BookOpen },
-    { label: 'Menu', path: '#menu', icon: Menu, isMenu: true },
-  ];
-
-  return (
-    <nav className="android-bottom-bar" aria-label="Android Mobile Navigation Bar">
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = item.isMenu 
-          ? menu 
-          : (item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path));
-
-        if (item.isMenu) {
-          return (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => setMenu(prev => !prev)}
-              className={`android-tab ${isActive ? 'active' : ''}`}
-              aria-label={menu ? 'Close Menu' : 'Open All Menu Options'}
-              aria-expanded={menu}
-            >
-              <div className="tab-icon-wrap">
-                <Icon size={20} />
-              </div>
-              <span className="tab-label">{menu ? 'Close' : 'Menu'}</span>
-            </button>
-          );
-        }
-
-        return (
-          <Link
-            key={item.label}
-            to={item.path}
-            onClick={() => setMenu(false)}
-            className={`android-tab ${isActive ? 'active' : ''}`}
-            aria-label={item.label}
-          >
-            <div className="tab-icon-wrap relative">
-              <Icon size={20} />
-              {item.isLive && (
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                </span>
-              )}
-            </div>
-            <span className="tab-label">{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
+    <main id="main"><Routes>
+      <Route path="/" element={<Home/>}/><Route path="/worship" element={<Worship/>}/>
+      <Route path="/sermons" element={<Sermons/>}/><Route path="/sermons/:id" element={<SermonDetail/>}/>
+      <Route path="/announcements" element={<Announcements/>}/><Route path="/admin" element={<Admin/>}/>
+      <Route path="/bible" element={<BibleLanding isLive={liveInfo?.isLive} liveTitle={liveInfo?.title}/>}/>
+      <Route path="/bible/read" element={<BibleReader/>}/><Route path="/live" element={<LivePage/>}/>
+      <Route path="/community" element={<CommunityOverview alerts={alerts}/>}/>
+      <Route path="/profile" element={<MemberProfile member={currentUser} onLogin={() => setLoginModal(true)} onLogout={logout} onNotifications={() => setAlertsModal(true)}/>}/>
+      <Route path="/about" element={<About/>}/><Route path="/prayer" element={<Prayer/>}/><Route path="/contact" element={<Contact/>}/>
+      <Route path="*" element={<PageNotFound/>}/>
+    </Routes></main>
+    <Footer/>
+    <nav className="ref-bottom-nav" aria-label="Mobile navigation">{[
+      {label:'Home',to:'/',Icon:HomeIcon},{label:'Bible',to:'/bible',Icon:BookOpen},
+      {label:'Worship',to:'/worship',Icon:Music2},{label:'Community',to:'/community',Icon:Users},
+      {label:'Profile',to:'/profile',Icon:User}
+    ].map(({label,to,Icon}) => {const active=to==='/'?location.pathname==='/':location.pathname.startsWith(to);return <Link key={to} to={to} aria-current={active?'page':undefined} className={active?'active':''}><span><Icon size={22} strokeWidth={active?2:1.6}/></span><small>{label}</small></Link>;})}</nav>
+  </div>;
 }
 
 function PageNotFound() {
@@ -1330,18 +1110,16 @@ function Home() {
   }, []);
 
   return <>
-    <DailyVerse/>
-    <LiveStatus compact/>
-    <section className="hero">
+    <section className="hero ref-hero">
       <Img name="congregation" className="hero-img" alt="The congregation worshipping at Anointing Ministries"/>
       <div className="hero-shade"/>
       <LightAtmosphere/>
       <motion.div className="hero-copy" initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
         <Tag><span className="tiny-line"/> A PLACE TO BELONG. A FAITH TO LIVE.</Tag>
-        <h1>Experience<br />His <em>presence.</em></h1>
-        <p>A place where faith grows, hearts are renewed,<br className="desktop"/> and lives are transformed through worship.</p>
+        <h1>Welcome to<br/>Worship.</h1>
+        <p>A community rooted in Christ,<br className="desktop"/> growing in faith together.</p>
         <div className="actions">
-          <Link to="/worship" className="btn gold">Join us this Sunday <ArrowUpRight size={17}/></Link>
+          <Link to="/live" className="ref-hero-cta"><span><Play size={15} fill="currentColor"/></span>Join worship<ArrowRight size={18}/></Link>
           <Link to="/live" className="hero-watch"><span><Play size={15} fill="currentColor"/></span> Watch live worship</Link>
         </div>
       </motion.div>
@@ -1352,6 +1130,8 @@ function Home() {
       </div>
     </section>
 
+    <div className="ref-home-hub"><DailyVerse variant="home"/><QuickAccess/><CommunityInvite/></div>
+    <LiveStatus compact/>
     {/* Admin added home banners */}
     {homeBanners.length > 0 && (
       <section className="section" style={{background:'#f9f6ef'}}>
@@ -1422,6 +1202,7 @@ function Home() {
         </div>
       </div>
     </section>
+    <div className="ref-home-song-section"><WorshipPreview/></div>
     <MinistryArchive/>
     <section className="prayer-banner">
       <div className="prayer-orbit"/>
@@ -1811,6 +1592,7 @@ function SermonDetail() {
 }
 
 function PrivateForm({kind='prayer'}:{kind?:string}) {
+  const prayerDraft = useLocation().state?.prayerDraft || '';
   const [category,setCategory]=useState('Personal prayer'),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[compose,setCompose]=useState('');
   return <form className="form form-card" onSubmit={async e=>{
     e.preventDefault();
@@ -1859,7 +1641,7 @@ function PrivateForm({kind='prayer'}:{kind?:string}) {
       <label>Birthday<input type="date" name="birthday" required aria-label="Birthday"/></label>
       <label className="checkbox"><input type="checkbox" name="birthdayConsent" required/>I agree to share this birthday privately with the prayer team.</label>
     </>}
-    <label>{kind==='prayer'?'Your prayer request':'Your message'}<textarea name="message" required minLength={10} maxLength={5000} rows={6} placeholder="Share what’s on your heart…" aria-label={kind==='prayer'?'Your prayer request':'Your message'}/></label>
+    <label>{kind==='prayer'?'Your prayer request':'Your message'}<textarea name="message" defaultValue={kind==='prayer'?prayerDraft:''} required minLength={10} maxLength={5000} rows={6} placeholder="Share what’s on your heart…" aria-label={kind==='prayer'?'Your prayer request':'Your message'}/></label>
     <div className="privacy-note">Private to the prayer team. Requests and birthdays are never published or stored in this website’s database.</div>
     <button className="btn navy" disabled={busy}>{busy?'Sending…':'Submit private request'}<ArrowRight size={17}/></button>
     <p className="small muted">Recipient: maker200222@gmail.com. Automatic delivery requires the ministry’s Gmail connection. If unavailable, you can review and send your request in Gmail.</p>

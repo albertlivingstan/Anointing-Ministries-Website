@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && node scripts/run-framework.mjs build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:mobile": "bun test tests/mobile-layout.test.tsx"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

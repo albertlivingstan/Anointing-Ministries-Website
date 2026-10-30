@@ -6,10 +6,21 @@ export function useMemberAuth() {
   const [currentUser, setCurrentUser] = useState<Member | null>(null);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('am-logged-member');
-      if (saved) setCurrentUser(JSON.parse(saved));
-    } catch {}
+    const sync = () => {
+      try {
+        const saved = localStorage.getItem('am-logged-member');
+        setCurrentUser(saved ? JSON.parse(saved) : null);
+      } catch {
+        setCurrentUser(null);
+      }
+    };
+    sync();
+    window.addEventListener('am-member-changed', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('am-member-changed', sync);
+      window.removeEventListener('storage', sync);
+    };
   }, []);
 
   const login = (nameInput: string, dobInput: string) => {
@@ -42,6 +53,7 @@ export function useMemberAuth() {
       setCurrentUser(found);
       try {
         localStorage.setItem('am-logged-member', JSON.stringify(found));
+        window.dispatchEvent(new Event('am-member-changed'));
       } catch {}
       return { success: true, member: found };
     }
@@ -52,6 +64,7 @@ export function useMemberAuth() {
     setCurrentUser(null);
     try {
       localStorage.removeItem('am-logged-member');
+      window.dispatchEvent(new Event('am-member-changed'));
     } catch {}
   };
 
